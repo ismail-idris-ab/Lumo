@@ -1,0 +1,329 @@
+// Lumo Prisma schema — TRD §9–10. Money in kobo (Int). All ids cuid.
+// Enums mirrored in packages/shared/src/enums.ts — keep in sync.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Supabase pooled (pgbouncer, :6543) — app runtime
+  directUrl = env("DIRECT_URL") // Supabase direct (:5432) — migrations
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  EXPIRED
+  SOLD
+  DELETED
+}
+
+enum Condition {
+  NEW
+  USED
+  FOR_PARTS
+}
+
+enum VerificationStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum PaymentPurpose {
+  PROMOTION
+  SUBSCRIPTION
+  VERIFICATION
+  FEATURED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+}
+
+enum ReportReason {
+  SCAM
+  PROHIBITED
+  DUPLICATE
+  MISCATEGORISED
+  ALREADY_SOLD
+  OTHER
+}
+
+// ───────────────────────── Models ─────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  phone         String?
+  roles         Role[]    @default([BUYER])
+  emailVerified Boolean   @default(false)
+  phoneVerified Boolean   @default(false)
+  avatarUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  sellerProfile   SellerProfile?
+  listings        Listing[]
+  favorites       Favorite[]
+  reports         Report[]
+  payments        Payment[]
+  notifications   Notification[]
+  refreshTokens   RefreshToken[]
+  subscriptions   SellerSubscription[]
+  messages        Message[]
+  buyerChats      Chat[]               @relation("BuyerChats")
+  sellerChats     Chat[]               @relation("SellerChats")
+  reviewsReceived Review[]             @relation("ReviewsReceived")
+  reviewsWritten  Review[]             @relation("ReviewsWritten")
+}
+
+// Rotating refresh tokens with reuse detection (TRD §7). One row per issued token;
+// a session "family" is chained via replacedById so reuse of a rotated token can
+// revoke the whole family.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique
+  familyId     String
+  replacedById String?   @unique
+  replacedBy   RefreshToken?  @relation("TokenRotation", fields: [replacedById], references: [id])
+  rotatedFrom  RefreshToken?  @relation("TokenRotation")
+  revokedAt    DateTime?
+  expiresAt    DateTime
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model SellerProfile {
+  id            String             @id @default(cuid())
+  userId        String             @unique
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio           String?
+  verification  VerificationStatus @default(NONE)
+  verifiedAt    DateTime?
+  ratingAvg     Float              @default(0)
+  ratingCount   Int                @default(0)
+  isFeatured    Boolean            @default(false)
+  featuredUntil DateTime?
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String
+  slug     String     @unique
+  parentId String?
+  parent   Category?  @relation("Sub", fields: [parentId], references: [id])
+  children Category[] @relation("Sub")
+  order    Int        @default(0)
+  listings Listing[]
+}
+
+model Listing {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  title         String
+  description   String
+  priceKobo     Int
+  condition     Condition      @default(USED)
+  status        ListingStatus  @default(PENDING)
+  state         String
+  city          String // city/LGA
+  area          String? // local area/market
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id])
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id])
+  images        ListingImage[]
+  favorites     Favorite[]
+  chats         Chat[]
+  reports       Report[]
+  isPromoted    Boolean        @default(false)
+  promotedUntil DateTime?
+  expiresAt     DateTime
+  viewsCount    Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  @@index([status, categoryId, state, city])
+  @@index([status, isPromoted, createdAt])
+}
+
+model ListingImage {
+  id        String  @id @default(cuid())
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String // Cloudinary id for deletion
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+
+  @@index([listingId])
+}
+
+model Favorite {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, listingId])
+  @@index([listingId])
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  listingId String
+  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyerId   String
+  buyer     User      @relation("BuyerChats", fields: [buyerId], references: [id])
+  sellerId  String
+  seller    User      @relation("SellerChats", fields: [sellerId], references: [id])
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@unique([listingId, buyerId, sellerId])
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  chatId    String
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User      @relation(fields: [senderId], references: [id])
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([chatId, createdAt])
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  listingId  String
+  listing    Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User         @relation(fields: [reporterId], references: [id])
+  reason     ReportReason
+  details    String?
+  resolved   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  @@unique([listingId, reporterId])
+  @@index([resolved])
+}
+
+model PromotionPackage {
+  id        String  @id @default(cuid())
+  name      String
+  days      Int
+  priceKobo Int
+  active    Boolean @default(true)
+}
+
+model SubscriptionPlan {
+  id           String               @id @default(cuid())
+  name         String
+  priceKobo    Int
+  listingLimit Int
+  promoCredits Int
+  features     Json
+  active       Boolean              @default(true)
+  subscriptions SellerSubscription[]
+}
+
+model SellerSubscription {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+  startedAt DateTime         @default(now())
+  expiresAt DateTime
+  active    Boolean          @default(true)
+
+  @@index([userId])
+  @@index([active, expiresAt])
+}
+
+model Payment {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  purpose    PaymentPurpose
+  amountKobo Int
+  status     PaymentStatus  @default(PENDING)
+  reference  String         @unique // Paystack reference
+  targetId   String? // listingId / planId / verification req id
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  sellerId  String
+  seller    User     @relation("ReviewsReceived", fields: [sellerId], references: [id])
+  authorId  String
+  author    User     @relation("ReviewsWritten", fields: [authorId], references: [id])
+  rating    Int
+  body      String?
+  createdAt DateTime @default(now())
+
+  @@index([sellerId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([actorId])
+}
