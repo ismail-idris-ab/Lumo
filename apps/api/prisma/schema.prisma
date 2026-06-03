@@ -96,6 +96,7 @@ model User {
   reviewsReceived Review[]             @relation("ReviewsReceived")
   reviewsWritten  Review[]             @relation("ReviewsWritten")
   verificationRequests VerificationRequest[]
+  contactReveals  ContactReveal[]
 }
 
 // Seller verification submission (TRD §22 — docs in a private bucket). Fee gating in Phase 5.
@@ -181,6 +182,7 @@ model Listing {
   favorites     Favorite[]
   chats         Chat[]
   reports       Report[]
+  contactReveals ContactReveal[]
   isPromoted    Boolean        @default(false)
   promotedUntil DateTime?
   expiresAt     DateTime
@@ -206,6 +208,19 @@ model ListingImage {
 }
 
 model Favorite {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, listingId])
+  @@index([listingId])
+}
+
+// One row per buyer who revealed a listing's contact — a durable "lead" signal.
+// Unique per (listing, user) so it counts distinct interested buyers, not raw clicks.
+model ContactReveal {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId String

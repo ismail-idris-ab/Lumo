@@ -79,7 +79,7 @@ listingsRouter.post(
   authenticate,
   rateLimit({ name: 'contact-reveal', windowSec: 3600, max: 20, by: 'user' }),
   asyncHandler(async (req, res) => {
-    res.json(await listingService.revealContact(param(req, 'id')));
+    res.json(await listingService.revealContact(param(req, 'id'), req.user!.id));
   }),
 );
 

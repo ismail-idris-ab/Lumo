@@ -245,6 +245,7 @@ export async function deleteListing(id: string, actor: Principal): Promise<void>
 // Reveal seller phone — login-gated + rate-limited (domain rule 8). Only for visible listings.
 export async function revealContact(
   listingId: string,
+  userId: string,
 ): Promise<{ sellerId: string; sellerName: string; phone: string | null }> {
   const listing = await prisma.listing.findUnique({
     where: { id: listingId },
@@ -257,6 +258,12 @@ export async function revealContact(
   });
   if (!listing || listing.deletedAt || listing.status !== 'APPROVED' || listing.expiresAt < new Date()) {
     throw AppError.notFound('Listing not available');
+  }
+  // Record the reveal as a unique lead (idempotent per buyer+listing). Never block the reveal on this.
+  if (listing.owner.id !== userId) {
+    await prisma.contactReveal
+      .upsert({ where: { userId_listingId: { userId, listingId } }, create: { userId, listingId }, update: {} })
+      .catch(() => undefined);
   }
   return { sellerId: listing.owner.id, sellerName: listing.owner.name, phone: listing.owner.phone };
 }

@@ -12,6 +12,7 @@ interface SellerAnalytics {
     totalListings: number;
     totalViews: number;
     leads: number;
+    contacts: number;
     favorites: number;
   };
   listings: {
@@ -20,6 +21,7 @@ interface SellerAnalytics {
     title: string;
     views: number;
     leads: number;
+    contacts: number;
     favorites: number;
   }[];
 }
@@ -40,10 +42,11 @@ export default function DashboardPage() {
         <p className="text-sm text-muted-foreground">Manage your listings, messages, and saved items.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <StatCard label="Active listings" value={t?.activeListings ?? '—'} />
         <StatCard label="Total views" value={t?.totalViews ?? '—'} />
         <StatCard label="Leads (chats)" value={t?.leads ?? '—'} />
+        <StatCard label="Contacts" value={t?.contacts ?? '—'} />
         <StatCard label="Saves" value={t?.favorites ?? '—'} />
       </div>
 
@@ -57,7 +60,7 @@ export default function DashboardPage() {
                   {l.title}
                 </Link>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {l.views} views · {l.leads} leads · {l.favorites} saves
+                  {l.views} views · {l.leads} leads · {l.contacts} contacts · {l.favorites} saves
                 </span>
               </li>
             ))}

@@ -7,6 +7,7 @@ export interface SellerAnalytics {
     totalListings: number;
     totalViews: number;
     leads: number; // chats started on this seller's listings
+    contacts: number; // unique buyers who revealed contact
     favorites: number;
   };
   byStatus: Record<string, number>;
@@ -18,6 +19,7 @@ export interface SellerAnalytics {
     status: ListingStatus;
     views: number;
     leads: number;
+    contacts: number;
     favorites: number;
   }[];
 }
@@ -25,7 +27,7 @@ export interface SellerAnalytics {
 // Leads are counted as chat threads. Contact-reveals are not persisted (rate-limited, fire-and-forget),
 // so they are intentionally excluded — chats are the durable lead signal.
 export async function getSellerAnalytics(userId: string): Promise<SellerAnalytics> {
-  const [grouped, viewsAgg, leads, favorites, listings] = await Promise.all([
+  const [grouped, viewsAgg, leads, contacts, favorites, listings] = await Promise.all([
     prisma.listing.groupBy({
       by: ['status'],
       where: { ownerId: userId, deletedAt: null },
@@ -36,6 +38,7 @@ export async function getSellerAnalytics(userId: string): Promise<SellerAnalytic
       _sum: { viewsCount: true },
     }),
     prisma.chat.count({ where: { sellerId: userId } }),
+    prisma.contactReveal.count({ where: { listing: { ownerId: userId, deletedAt: null } } }),
     prisma.favorite.count({ where: { listing: { ownerId: userId, deletedAt: null } } }),
     prisma.listing.findMany({
       where: { ownerId: userId, deletedAt: null, status: 'APPROVED' },
@@ -47,7 +50,7 @@ export async function getSellerAnalytics(userId: string): Promise<SellerAnalytic
         title: true,
         status: true,
         viewsCount: true,
-        _count: { select: { chats: true, favorites: true } },
+        _count: { select: { chats: true, contactReveals: true, favorites: true } },
       },
     }),
   ]);
@@ -65,6 +68,7 @@ export async function getSellerAnalytics(userId: string): Promise<SellerAnalytic
       totalListings,
       totalViews: viewsAgg._sum.viewsCount ?? 0,
       leads,
+      contacts,
       favorites,
     },
     byStatus,
@@ -75,6 +79,7 @@ export async function getSellerAnalytics(userId: string): Promise<SellerAnalytic
       status: l.status,
       views: l.viewsCount,
       leads: l._count.chats,
+      contacts: l._count.contactReveals,
       favorites: l._count.favorites,
     })),
   };
