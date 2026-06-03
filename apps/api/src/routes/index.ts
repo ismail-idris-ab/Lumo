@@ -4,6 +4,8 @@ import { authRouter } from './auth';
 import { meRouter } from './me';
 import { categoriesRouter } from './categories';
 import { listingsRouter } from './listings';
+import { searchRouter } from './search';
+import { favoritesRouter } from './favorites';
 import { adminRouter } from './admin';
 
 // Versioned API router — mounted at /api/v1 in app.ts.
@@ -19,4 +21,6 @@ v1Router.use('/auth', authRouter);
 v1Router.use('/me', meRouter);
 v1Router.use('/categories', categoriesRouter);
 v1Router.use('/listings', listingsRouter);
+v1Router.use('/search', searchRouter);
+v1Router.use('/favorites', favoritesRouter);
 v1Router.use('/admin', adminRouter);

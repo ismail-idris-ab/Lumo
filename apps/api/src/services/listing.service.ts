@@ -13,6 +13,7 @@ import {
 } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
+import { enqueueListingSync } from '../lib/queue';
 import { assertOwnership } from '../middleware/rbac';
 
 type Principal = { id: string; roles: Role[] };
@@ -224,6 +225,8 @@ export async function updateListing(
     },
     include: listingInclude,
   });
+  // Edit re-pends (or no-op) → drop from search until re-approved.
+  if (hasChanges) await enqueueListingSync(id);
   return toPublicListing(listing);
 }
 
@@ -236,6 +239,7 @@ export async function deleteListing(id: string, actor: Principal): Promise<void>
     where: { id },
     data: { status: 'DELETED', deletedAt: new Date() },
   });
+  await enqueueListingSync(id);
 }
 
 export async function markListingSold(id: string, actor: Principal): Promise<PublicListing> {
@@ -250,5 +254,6 @@ export async function markListingSold(id: string, actor: Principal): Promise<Pub
     data: { status: 'SOLD' },
     include: listingInclude,
   });
+  await enqueueListingSync(id);
   return toPublicListing(listing);
 }

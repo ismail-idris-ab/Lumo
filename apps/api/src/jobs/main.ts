@@ -2,40 +2,71 @@ import { Queue, Worker } from 'bullmq';
 import { createRedisConnection } from '../lib/redis';
 import { logger } from '../lib/logger';
 import { prisma } from '../lib/prisma';
+import { isSearchConfigured } from '../lib/search';
 import { runExpirySweep } from '../services/expiry.service';
-import { EXPIRY_SWEEP_INTERVAL_MS, JOB_NAMES, QUEUE_NAMES } from './queues';
+import { reindexAllApproved, syncListingDoc } from '../services/search-sync';
+import {
+  EXPIRY_SWEEP_INTERVAL_MS,
+  JOB_NAMES,
+  QUEUE_NAMES,
+  REINDEX_INTERVAL_MS,
+  type SyncListingJob,
+} from './queues';
 
 // Worker process entrypoint: `pnpm --filter @lumo/api worker`.
 // Deployed separately from the API (TRD §25).
 async function main() {
   const connection = createRedisConnection();
-  const queue = new Queue(QUEUE_NAMES.maintenance, { connection });
+  const closers: Array<() => Promise<void>> = [];
 
-  // Repeatable expiry sweep (idempotent → upsert is safe on every boot).
-  await queue.upsertJobScheduler(
+  // ── Maintenance queue: repeatable expiry sweep ──
+  const maintenance = new Queue(QUEUE_NAMES.maintenance, { connection });
+  await maintenance.upsertJobScheduler(
     JOB_NAMES.expirySweep,
     { every: EXPIRY_SWEEP_INTERVAL_MS },
     { name: JOB_NAMES.expirySweep },
   );
-
-  const worker = new Worker(
+  const maintenanceWorker = new Worker(
     QUEUE_NAMES.maintenance,
     async (job) => {
       if (job.name === JOB_NAMES.expirySweep) return runExpirySweep();
-      logger.warn({ job: job.name }, 'Unknown job');
+      logger.warn({ job: job.name }, 'Unknown maintenance job');
     },
     { connection },
   );
+  closers.push(() => maintenanceWorker.close(), () => maintenance.close());
 
-  worker.on('completed', (job) => logger.info({ job: job.name, result: job.returnvalue }, 'Job completed'));
-  worker.on('failed', (job, err) => logger.error({ job: job?.name, err }, 'Job failed'));
+  // ── Search queue: per-listing sync + nightly reconcile (only if search configured) ──
+  if (isSearchConfigured) {
+    const search = new Queue(QUEUE_NAMES.search, { connection });
+    await search.upsertJobScheduler(
+      JOB_NAMES.reindexAll,
+      { every: REINDEX_INTERVAL_MS },
+      { name: JOB_NAMES.reindexAll },
+    );
+    const searchWorker = new Worker(
+      QUEUE_NAMES.search,
+      async (job) => {
+        if (job.name === JOB_NAMES.syncListing) {
+          await syncListingDoc((job.data as SyncListingJob).listingId);
+          return;
+        }
+        if (job.name === JOB_NAMES.reindexAll) return reindexAllApproved();
+        logger.warn({ job: job.name }, 'Unknown search job');
+      },
+      { connection },
+    );
+    closers.push(() => searchWorker.close(), () => search.close());
+    logger.info('🔎 Search worker started');
+  } else {
+    logger.warn('Search not configured — search worker disabled');
+  }
 
   logger.info('🛠️  Maintenance worker started');
 
   async function shutdown(signal: string) {
-    logger.info(`${signal} received — stopping worker`);
-    await worker.close();
-    await queue.close();
+    logger.info(`${signal} received — stopping workers`);
+    for (const close of closers) await close();
     connection.disconnect();
     await prisma.$disconnect();
     process.exit(0);

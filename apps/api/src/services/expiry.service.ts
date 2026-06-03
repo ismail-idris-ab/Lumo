@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { notify } from '../lib/notify';
 import { logger } from '../lib/logger';
+import { enqueueListingSync } from '../lib/queue';
 
 export interface ExpirySweepResult {
   listingsExpired: number;
@@ -24,15 +25,23 @@ export async function runExpirySweep(): Promise<ExpirySweepResult> {
       data: { status: 'EXPIRED' },
     });
     await Promise.all(
-      expiring.map((l) => notify(l.ownerId, 'listing.expired', { listingId: l.id, slug: l.slug })),
+      expiring.flatMap((l) => [
+        notify(l.ownerId, 'listing.expired', { listingId: l.id, slug: l.slug }),
+        enqueueListingSync(l.id), // drop from search
+      ]),
     );
   }
 
-  // 2. Expired promotions → drop boost.
+  // 2. Expired promotions → drop boost (re-sync to refresh the index doc).
+  const promoStale = await prisma.listing.findMany({
+    where: { isPromoted: true, promotedUntil: { lt: now } },
+    select: { id: true },
+  });
   const promo = await prisma.listing.updateMany({
     where: { isPromoted: true, promotedUntil: { lt: now } },
     data: { isPromoted: false },
   });
+  await Promise.all(promoStale.map((l) => enqueueListingSync(l.id)));
 
   // 3. Expired featured sellers.
   const featured = await prisma.sellerProfile.updateMany({

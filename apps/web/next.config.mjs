@@ -7,6 +7,9 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@lumo/shared'],
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
+  },
   // Monorepo: trace files from the workspace root (silences multi-lockfile warning).
   outputFileTracingRoot: path.join(dirname, '../../'),
   // Linting/typechecking run at the workspace root (pnpm lint / typecheck).

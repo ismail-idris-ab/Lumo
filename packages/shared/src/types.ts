@@ -70,6 +70,7 @@ export interface PublicListing {
   images: ListingImageDTO[];
   category?: CategorySummary;
   seller?: SellerSummary;
+  favorited?: boolean; // set when fetched in an authed context
 }
 
 export interface Paginated<T> {
@@ -78,4 +79,21 @@ export interface Paginated<T> {
   limit: number;
   total: number;
   totalPages: number;
+}
+
+// Lightweight search result card (same shape from Meili or the Postgres fallback).
+export interface SearchListing {
+  id: string;
+  slug: string;
+  title: string;
+  priceKobo: number;
+  condition: Condition;
+  state: string;
+  city: string;
+  area: string | null;
+  categorySlug: string;
+  categoryName: string;
+  isPromoted: boolean;
+  primaryImage: string | null;
+  createdAt: string; // ISO
 }

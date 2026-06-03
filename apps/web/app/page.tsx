@@ -1,30 +1,50 @@
 import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { getCategories, searchListings } from '@/lib/api';
+import { SearchBar } from '@/components/search-bar';
+import { ListingGrid } from '@/components/listing-card';
 
-export default function HomePage() {
+// ISR: home revalidates periodically.
+export const revalidate = 60;
+
+export default async function HomePage() {
+  const [categories, results] = await Promise.all([
+    getCategories(),
+    searchListings('sort=newest&limit=12'),
+  ]);
+
   return (
-    <main className="container flex min-h-dvh flex-col items-center justify-center gap-8 py-16 text-center">
-      <div className="space-y-3">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Lumo</h1>
-        <p className="mx-auto max-w-md text-muted-foreground">
-          The trusted local marketplace for verified Nigerian sellers.
+    <main className="container space-y-10 py-8">
+      <section className="space-y-4 py-6 text-center">
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Buy &amp; sell safely across Nigeria
+        </h1>
+        <p className="mx-auto max-w-xl text-muted-foreground">
+          Verified sellers, fast moderation, local search down to your city.
         </p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href="/register" className={cn(buttonVariants())}>
-          Get started
-        </Link>
-        <Link href="/login" className={cn(buttonVariants({ variant: 'outline' }))}>
-          Log in
-        </Link>
-        <Link href="/dashboard" className={cn(buttonVariants({ variant: 'ghost' }))}>
-          Dashboard
-        </Link>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Phase 0 skeleton — features land in later phases.
-      </p>
+        <div className="flex justify-center">
+          <SearchBar />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Categories</h2>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((c) => (
+            <Link
+              key={c.id}
+              href={`/category/${c.slug}`}
+              className="rounded-full border px-4 py-1.5 text-sm hover:bg-accent"
+            >
+              {c.name}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Latest listings</h2>
+        <ListingGrid items={results.items} />
+      </section>
     </main>
   );
 }

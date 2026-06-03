@@ -121,7 +121,7 @@ This is a large build and I have hit output-token limits before. Work **incremen
 
 ## Current state
 
-- Phase: **1 complete (Listings core).** Categories (public + admin CRUD + seed), listing CRUD (PENDING-on-create/edit, browse/detail/filters, soft-delete, mark-sold), Cloudinary signed image uploads, admin moderation (approve/reject/suspend/request-changes/flag/delete + AuditLog + Notifications), BullMQ expiry worker (Upstash). Phase 0: monorepo, auth + RBAC, Express skeleton, Next.js skeleton.
-- Infra: Supabase Postgres · Cloudinary images · Upstash Redis (BullMQ). Worker: `pnpm --filter @lumo/api worker`.
-- Next: **Phase 2 — Discovery** (Meilisearch, search/filters, favorites, SEO) — awaiting "proceed to Phase 2".
+- Phase: **2 complete (Discovery).** Favorites (login-gated), Meilisearch index + BullMQ search sync (outbox on approve/edit/expire/delete/promote + nightly reconcile), `GET /search` (filters/sort/promo-boost, Postgres fallback), web SEO pages (SSR/ISR home/category/listing/search, JSON-LD Product+Breadcrumb+Organization, sitemap.xml, robots.txt, canonical/OG). Phases 0–1: foundations, auth+RBAC, categories, listing CRUD, Cloudinary images, admin moderation, expiry worker.
+- Infra: Supabase Postgres · Cloudinary · Upstash Redis (BullMQ) · Meilisearch Cloud. Worker: `pnpm --filter @lumo/api worker`. Search: `pnpm --filter @lumo/api search:setup|search:reindex`.
+- Next: **Phase 3 — Connection** (contact-reveal, Socket.IO chat, notifications) — awaiting "proceed to Phase 3".
 - Update this line as phases complete so I always know where we are.

@@ -23,6 +23,10 @@ const envSchema = z.object({
   DIRECT_URL: z.string().url().optional(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
+  // Search (optional at boot; search degrades to Postgres if unset).
+  SEARCH_HOST: z.string().url().optional(),
+  SEARCH_API_KEY: z.string().optional(),
+
   // Images (optional at boot; image endpoints fail clearly if unset).
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),

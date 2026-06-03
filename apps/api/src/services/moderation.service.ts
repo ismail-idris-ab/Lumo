@@ -11,6 +11,7 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { writeAudit, type Actor } from '../lib/audit';
 import { notify } from '../lib/notify';
+import { enqueueListingSync } from '../lib/queue';
 import { listingInclude, toPublicListing } from './listing.service';
 
 const DAY_MS = 86_400_000;
@@ -76,6 +77,7 @@ async function applyModeration(
     after: { status: listing.status, ...auditExtra },
     ip: actor.ip,
   });
+  await enqueueListingSync(id); // worker upserts (if APPROVED) or removes
   return toPublicListing(listing);
 }
 
@@ -140,5 +142,6 @@ export async function adminDeleteListing(id: string, actor: Actor): Promise<void
     after: { status: 'DELETED' },
     ip: actor.ip,
   });
+  await enqueueListingSync(id);
   await notify(before.ownerId, 'listing.deleted_by_admin', { listingId: id });
 }
