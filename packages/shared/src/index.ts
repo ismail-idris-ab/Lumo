@@ -8,3 +8,5 @@ export * from './schemas/listing';
 export * from './schemas/moderation';
 export * from './schemas/image';
 export * from './schemas/chat';
+export * from './schemas/report';
+export * from './schemas/verification';

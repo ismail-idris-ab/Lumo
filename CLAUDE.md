@@ -121,7 +121,7 @@ This is a large build and I have hit output-token limits before. Work **incremen
 
 ## Current state
 
-- Phase: **3 complete (Connection).** Redis rate limiting (fail-open, TRD §20), contact-reveal (login + 20/hr), chat REST (get-or-create/list/messages, unread, membership), Socket.IO realtime (JWT auth, rooms, message:send→persist→broadcast; single-node), notifications (GET/mark-read) + best-effort Resend email (offline message, approve/reject). Phases 0–2: foundations, auth+RBAC, listings+moderation+images, expiry worker, search (Meili + sync), favorites, SEO.
-- Infra: Supabase Postgres · Cloudinary · Upstash Redis (BullMQ + rate-limit + would-be socket adapter) · Meilisearch Cloud · Resend (optional). Worker: `pnpm --filter @lumo/api worker`.
-- Next: **Phase 4 — Trust** (reports + moderation actions, seller verification flow) — awaiting "proceed to Phase 4".
+- Phase: **4 complete (Trust).** Reports (login + 10/day, dedupe, auto-flag at 5), admin reports queue (grouped by listing, resolve + suspend/delete), seller verification (`VerificationRequest` model, private Cloudinary doc uploads, apply→PENDING, admin approve→VERIFIED+badge/reject) — all AuditLog + notify + best-effort email. Phases 0–3: foundations, auth+RBAC, listings+moderation+images, expiry worker, search+sync, favorites, SEO, rate-limit, contact-reveal, chat (REST + Socket.IO), notifications.
+- Infra: Supabase Postgres · Cloudinary (public listing imgs + private verification docs) · Upstash Redis (BullMQ + rate-limit) · Meilisearch Cloud · Resend (optional). Worker: `pnpm --filter @lumo/api worker`.
+- Next: **Phase 5 — Monetisation** (Paystack init + webhook, promotions, subscriptions, featured stores) — awaiting "proceed to Phase 5".
 - Update this line as phases complete so I always know where we are.

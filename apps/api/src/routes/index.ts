@@ -8,6 +8,8 @@ import { searchRouter } from './search';
 import { favoritesRouter } from './favorites';
 import { chatsRouter } from './chats';
 import { notificationsRouter } from './notifications';
+import { reportsRouter } from './reports';
+import { verificationRouter } from './verification';
 import { adminRouter } from './admin';
 
 // Versioned API router — mounted at /api/v1 in app.ts.
@@ -27,4 +29,6 @@ v1Router.use('/search', searchRouter);
 v1Router.use('/favorites', favoritesRouter);
 v1Router.use('/chats', chatsRouter);
 v1Router.use('/notifications', notificationsRouter);
+v1Router.use('/reports', reportsRouter);
+v1Router.use('/verification', verificationRouter);
 v1Router.use('/admin', adminRouter);

@@ -95,6 +95,24 @@ model User {
   sellerChats     Chat[]               @relation("SellerChats")
   reviewsReceived Review[]             @relation("ReviewsReceived")
   reviewsWritten  Review[]             @relation("ReviewsWritten")
+  verificationRequests VerificationRequest[]
+}
+
+// Seller verification submission (TRD §22 — docs in a private bucket). Fee gating in Phase 5.
+model VerificationRequest {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       VerificationStatus @default(PENDING)
+  businessName String?
+  docs         Json // [{ url, publicId, type }] — private Cloudinary assets
+  reason       String? // rejection reason
+  reviewerId   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+
+  @@index([status])
+  @@index([userId])
 }
 
 // Rotating refresh tokens with reuse detection (TRD §7). One row per issued token;
