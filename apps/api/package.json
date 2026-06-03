@@ -14,6 +14,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
+    "make-admin": "tsx src/scripts/make-admin.ts",
     "worker": "tsx src/jobs/main.ts",
     "worker:dev": "tsx watch src/jobs/main.ts",
     "expiry:run": "tsx src/scripts/run-expiry.ts",
