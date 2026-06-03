@@ -26,8 +26,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SiteHeader />
           <div className="flex-1">{children}</div>
           <footer className="border-t py-6">
-            <div className="container text-center text-xs text-muted-foreground">
-              © {new Date().getFullYear()} {SITE_NAME} — {SITE_DESCRIPTION}
+            <div className="container flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+              <nav className="flex gap-4">
+                <a href="/safety" className="hover:underline">
+                  Safety &amp; prohibited items
+                </a>
+              </nav>
+              <p>
+                © {new Date().getFullYear()} {SITE_NAME} — {SITE_DESCRIPTION}
+              </p>
             </div>
           </footer>
         </Providers>
