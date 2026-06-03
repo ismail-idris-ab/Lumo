@@ -32,6 +32,10 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @lumo/api prisma:generate
 
+      # @lumo/shared resolves via its compiled dist (types) — build it before anything typechecks.
+      - name: Build shared package
+        run: pnpm --filter @lumo/shared build
+
       - name: Lint
         run: pnpm lint
 
