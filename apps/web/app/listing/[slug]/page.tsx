@@ -1,17 +1,10 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getListing } from '@/lib/api';
 import { formatNaira, locationLabel } from '@/lib/format';
-import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import {
-  SITE_NAME,
-  breadcrumbJsonLd,
-  jsonLdScript,
-  productJsonLd,
-} from '@/lib/seo';
+import { ListingActions } from '@/components/listing/listing-actions';
+import { SITE_NAME, breadcrumbJsonLd, jsonLdScript, productJsonLd } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -52,7 +45,6 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
   if (!listing) notFound(); // 404 for missing/unavailable (expired/suspended) listings
 
   const primary = listing.images.find((i) => i.isPrimary) ?? listing.images[0];
-  const loginNext = `/login?next=/listing/${listing.slug}`;
 
   return (
     <main className="container grid gap-8 py-8 lg:grid-cols-2">
@@ -103,17 +95,9 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Link href={loginNext} className={cn(buttonVariants())}>
-            Show phone
-          </Link>
-          <Link href={loginNext} className={cn(buttonVariants({ variant: 'outline' }))}>
-            Chat
-          </Link>
-          <Link href={loginNext} className={cn(buttonVariants({ variant: 'ghost' }))}>
-            Save
-          </Link>
-        </div>
+        {listing.seller && (
+          <ListingActions listingId={listing.id} slug={listing.slug} sellerId={listing.seller.id} />
+        )}
 
         <div className="prose-sm whitespace-pre-wrap text-sm leading-relaxed">
           {listing.description}
