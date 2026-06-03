@@ -22,10 +22,15 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   DIRECT_URL: z.string().url().optional(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  RATE_LIMIT_REDIS_PREFIX: z.string().default('lumo:rl:'),
 
   // Search (optional at boot; search degrades to Postgres if unset).
   SEARCH_HOST: z.string().url().optional(),
   SEARCH_API_KEY: z.string().optional(),
+
+  // Email (optional; sending is best-effort — logs when unset).
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default('Lumo <onboarding@resend.dev>'),
 
   // Images (optional at boot; image endpoints fail clearly if unset).
   CLOUDINARY_CLOUD_NAME: z.string().optional(),

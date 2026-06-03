@@ -6,6 +6,8 @@ import { categoriesRouter } from './categories';
 import { listingsRouter } from './listings';
 import { searchRouter } from './search';
 import { favoritesRouter } from './favorites';
+import { chatsRouter } from './chats';
+import { notificationsRouter } from './notifications';
 import { adminRouter } from './admin';
 
 // Versioned API router — mounted at /api/v1 in app.ts.
@@ -23,4 +25,6 @@ v1Router.use('/categories', categoriesRouter);
 v1Router.use('/listings', listingsRouter);
 v1Router.use('/search', searchRouter);
 v1Router.use('/favorites', favoritesRouter);
+v1Router.use('/chats', chatsRouter);
+v1Router.use('/notifications', notificationsRouter);
 v1Router.use('/admin', adminRouter);

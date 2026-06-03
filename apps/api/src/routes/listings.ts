@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/auth';
+import { rateLimit } from '../middleware/ratelimit';
 import { param } from '../lib/request';
 import * as listingService from '../services/listing.service';
 import * as imageService from '../services/image.service';
@@ -69,6 +70,16 @@ listingsRouter.post(
   asyncHandler(async (req, res) => {
     const listing = await listingService.markListingSold(param(req, 'id'), req.user!);
     res.json({ listing });
+  }),
+);
+
+// POST /api/v1/listings/:id/contact-reveal — reveal seller phone (login + rate-limited).
+listingsRouter.post(
+  '/:id/contact-reveal',
+  authenticate,
+  rateLimit({ name: 'contact-reveal', windowSec: 3600, max: 20, by: 'user' }),
+  asyncHandler(async (req, res) => {
+    res.json(await listingService.revealContact(param(req, 'id')));
   }),
 );
 

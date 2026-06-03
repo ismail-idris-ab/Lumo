@@ -1,5 +1,6 @@
 import { Router, type Request } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
+import { rateLimit } from '../middleware/ratelimit';
 import { clearRefreshCookie, REFRESH_COOKIE, setRefreshCookie } from '../lib/cookies';
 import * as authService from '../services/auth.service';
 import type { SessionContext } from '../services/auth.service';
@@ -12,6 +13,7 @@ function sessionContext(req: Request): SessionContext {
 
 authRouter.post(
   '/register',
+  rateLimit({ name: 'register', windowSec: 60, max: 3 }),
   asyncHandler(async (req, res) => {
     const { user, accessToken, refreshToken } = await authService.register(
       req.body,
@@ -24,6 +26,7 @@ authRouter.post(
 
 authRouter.post(
   '/login',
+  rateLimit({ name: 'login', windowSec: 60, max: 5 }),
   asyncHandler(async (req, res) => {
     const { user, accessToken, refreshToken } = await authService.login(
       req.body,

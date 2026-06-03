@@ -11,6 +11,7 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { writeAudit, type Actor } from '../lib/audit';
 import { notify } from '../lib/notify';
+import { emailUser } from '../lib/email';
 import { enqueueListingSync } from '../lib/queue';
 import { listingInclude, toPublicListing } from './listing.service';
 
@@ -89,6 +90,11 @@ export async function approveListing(id: string, actor: Actor): Promise<PublicLi
     actor,
   );
   await notify(listing.seller!.id, 'listing.approved', { listingId: id, slug: listing.slug });
+  void emailUser(
+    listing.seller!.id,
+    'Your Lumo listing is now live',
+    `<p>Good news — “${listing.title}” has been approved and is now visible on Lumo.</p>`,
+  );
   return listing;
 }
 
@@ -96,6 +102,11 @@ export async function rejectListing(id: string, input: unknown, actor: Actor): P
   const { reason } = moderationReasonSchema.parse(input);
   const listing = await applyModeration(id, 'listing.reject', { status: 'REJECTED' }, actor, { reason });
   await notify(listing.seller!.id, 'listing.rejected', { listingId: id, reason });
+  void emailUser(
+    listing.seller!.id,
+    'Your Lumo listing needs changes',
+    `<p>“${listing.title}” was not approved.</p><p>Reason: ${reason}</p>`,
+  );
   return listing;
 }
 

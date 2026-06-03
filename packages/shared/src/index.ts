@@ -7,3 +7,4 @@ export * from './schemas/category';
 export * from './schemas/listing';
 export * from './schemas/moderation';
 export * from './schemas/image';
+export * from './schemas/chat';

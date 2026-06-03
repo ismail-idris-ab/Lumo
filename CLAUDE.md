@@ -121,7 +121,7 @@ This is a large build and I have hit output-token limits before. Work **incremen
 
 ## Current state
 
-- Phase: **2 complete (Discovery).** Favorites (login-gated), Meilisearch index + BullMQ search sync (outbox on approve/edit/expire/delete/promote + nightly reconcile), `GET /search` (filters/sort/promo-boost, Postgres fallback), web SEO pages (SSR/ISR home/category/listing/search, JSON-LD Product+Breadcrumb+Organization, sitemap.xml, robots.txt, canonical/OG). Phases 0–1: foundations, auth+RBAC, categories, listing CRUD, Cloudinary images, admin moderation, expiry worker.
-- Infra: Supabase Postgres · Cloudinary · Upstash Redis (BullMQ) · Meilisearch Cloud. Worker: `pnpm --filter @lumo/api worker`. Search: `pnpm --filter @lumo/api search:setup|search:reindex`.
-- Next: **Phase 3 — Connection** (contact-reveal, Socket.IO chat, notifications) — awaiting "proceed to Phase 3".
+- Phase: **3 complete (Connection).** Redis rate limiting (fail-open, TRD §20), contact-reveal (login + 20/hr), chat REST (get-or-create/list/messages, unread, membership), Socket.IO realtime (JWT auth, rooms, message:send→persist→broadcast; single-node), notifications (GET/mark-read) + best-effort Resend email (offline message, approve/reject). Phases 0–2: foundations, auth+RBAC, listings+moderation+images, expiry worker, search (Meili + sync), favorites, SEO.
+- Infra: Supabase Postgres · Cloudinary · Upstash Redis (BullMQ + rate-limit + would-be socket adapter) · Meilisearch Cloud · Resend (optional). Worker: `pnpm --filter @lumo/api worker`.
+- Next: **Phase 4 — Trust** (reports + moderation actions, seller verification flow) — awaiting "proceed to Phase 4".
 - Update this line as phases complete so I always know where we are.

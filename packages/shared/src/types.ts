@@ -81,6 +81,35 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
+export interface MessageDTO {
+  id: string;
+  chatId: string;
+  senderId: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationDTO {
+  id: string;
+  type: string;
+  payload: unknown;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface ChatSummary {
+  id: string;
+  listingId: string;
+  listingSlug: string;
+  listingTitle: string;
+  listingImage: string | null;
+  otherUser: { id: string; name: string; avatarUrl: string | null };
+  lastMessage: MessageDTO | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
 // Lightweight search result card (same shape from Meili or the Postgres fallback).
 export interface SearchListing {
   id: string;

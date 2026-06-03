@@ -242,6 +242,25 @@ export async function deleteListing(id: string, actor: Principal): Promise<void>
   await enqueueListingSync(id);
 }
 
+// Reveal seller phone — login-gated + rate-limited (domain rule 8). Only for visible listings.
+export async function revealContact(
+  listingId: string,
+): Promise<{ sellerId: string; sellerName: string; phone: string | null }> {
+  const listing = await prisma.listing.findUnique({
+    where: { id: listingId },
+    select: {
+      status: true,
+      deletedAt: true,
+      expiresAt: true,
+      owner: { select: { id: true, name: true, phone: true } },
+    },
+  });
+  if (!listing || listing.deletedAt || listing.status !== 'APPROVED' || listing.expiresAt < new Date()) {
+    throw AppError.notFound('Listing not available');
+  }
+  return { sellerId: listing.owner.id, sellerName: listing.owner.name, phone: listing.owner.phone };
+}
+
 export async function markListingSold(id: string, actor: Principal): Promise<PublicListing> {
   const existing = await prisma.listing.findUnique({ where: { id } });
   if (!existing || existing.deletedAt) throw AppError.notFound('Listing not found');
