@@ -6,6 +6,7 @@ import { adminListingsRouter } from './listings';
 import { adminReportsRouter } from './reports';
 import { adminVerificationsRouter } from './verifications';
 import { adminPaymentsRouter } from './payments';
+import { adminAnalyticsRouter } from './analytics';
 
 // All /api/v1/admin/* routes require an authenticated ADMIN or SUPER_ADMIN (deny-by-default).
 export const adminRouter: Router = Router();
@@ -17,3 +18,4 @@ adminRouter.use('/listings', adminListingsRouter);
 adminRouter.use('/reports', adminReportsRouter);
 adminRouter.use('/verifications', adminVerificationsRouter);
 adminRouter.use('/payments', adminPaymentsRouter);
+adminRouter.use('/analytics', adminAnalyticsRouter);
