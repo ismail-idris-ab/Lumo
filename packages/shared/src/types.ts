@@ -1,4 +1,11 @@
-import type { Condition, ListingStatus, Role, VerificationStatus } from './enums';
+import type {
+  Condition,
+  ListingStatus,
+  PaymentPurpose,
+  PaymentStatus,
+  Role,
+  VerificationStatus,
+} from './enums';
 
 // API error envelope (CLAUDE.md / TRD §6): { error: { code, message, details } }.
 export interface ApiErrorBody {
@@ -87,6 +94,16 @@ export interface MessageDTO {
   senderId: string;
   body: string;
   readAt: string | null;
+  createdAt: string;
+}
+
+export interface PaymentDTO {
+  id: string;
+  purpose: PaymentPurpose;
+  amountKobo: number;
+  status: PaymentStatus;
+  reference: string;
+  targetId: string | null;
   createdAt: string;
 }
 

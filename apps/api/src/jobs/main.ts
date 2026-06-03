@@ -4,11 +4,13 @@ import { logger } from '../lib/logger';
 import { prisma } from '../lib/prisma';
 import { isSearchConfigured } from '../lib/search';
 import { runExpirySweep } from '../services/expiry.service';
+import { reconcilePendingPayments } from '../services/payment.service';
 import { reindexAllApproved, syncListingDoc } from '../services/search-sync';
 import {
   EXPIRY_SWEEP_INTERVAL_MS,
   JOB_NAMES,
   QUEUE_NAMES,
+  RECONCILE_INTERVAL_MS,
   REINDEX_INTERVAL_MS,
   type SyncListingJob,
 } from './queues';
@@ -26,10 +28,16 @@ async function main() {
     { every: EXPIRY_SWEEP_INTERVAL_MS },
     { name: JOB_NAMES.expirySweep },
   );
+  await maintenance.upsertJobScheduler(
+    JOB_NAMES.reconcilePayments,
+    { every: RECONCILE_INTERVAL_MS },
+    { name: JOB_NAMES.reconcilePayments },
+  );
   const maintenanceWorker = new Worker(
     QUEUE_NAMES.maintenance,
     async (job) => {
       if (job.name === JOB_NAMES.expirySweep) return runExpirySweep();
+      if (job.name === JOB_NAMES.reconcilePayments) return reconcilePendingPayments();
       logger.warn({ job: job.name }, 'Unknown maintenance job');
     },
     { connection },

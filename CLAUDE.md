@@ -121,7 +121,7 @@ This is a large build and I have hit output-token limits before. Work **incremen
 
 ## Current state
 
-- Phase: **4 complete (Trust).** Reports (login + 10/day, dedupe, auto-flag at 5), admin reports queue (grouped by listing, resolve + suspend/delete), seller verification (`VerificationRequest` model, private Cloudinary doc uploads, apply→PENDING, admin approve→VERIFIED+badge/reject) — all AuditLog + notify + best-effort email. Phases 0–3: foundations, auth+RBAC, listings+moderation+images, expiry worker, search+sync, favorites, SEO, rate-limit, contact-reveal, chat (REST + Socket.IO), notifications.
-- Infra: Supabase Postgres · Cloudinary (public listing imgs + private verification docs) · Upstash Redis (BullMQ + rate-limit) · Meilisearch Cloud · Resend (optional). Worker: `pnpm --filter @lumo/api worker`.
-- Next: **Phase 5 — Monetisation** (Paystack init + webhook, promotions, subscriptions, featured stores) — awaiting "proceed to Phase 5".
+- Phase: **5 complete (Monetisation).** Seeded promo packages + sub plans (public list); Paystack payment init (server-priced, PENDING + unique ref); **webhook** (raw-body HMAC-SHA512 verify, idempotent on ref, amount-match guard, txn fulfilment: promotion→promotedUntil+reindex / subscription→active sub / featured→isFeatured / verification recorded); reconciliation job (BullMQ 15-min, re-verify stale PENDING); payment history (user + admin). All AuditLog + notify + email. Phases 0–4: foundations, auth, listings+moderation+images, expiry, search+sync, favorites, SEO, rate-limit, contact-reveal, chat (REST+Socket.IO), notifications, reports, verification.
+- Infra: Supabase Postgres · Cloudinary · Upstash Redis (BullMQ + rate-limit) · Meilisearch Cloud · Resend (optional) · Paystack (test keys needed for live init/reconcile; webhook is HMAC-verified). Worker: `pnpm --filter @lumo/api worker`.
+- Next: **Phase 6 — Hardening** (analytics, performance, polish, launch) — awaiting "proceed to Phase 6". (Also pending: web UI build-out — dashboards/forms — and verification fee gating.)
 - Update this line as phases complete so I always know where we are.

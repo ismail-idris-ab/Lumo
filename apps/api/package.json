@@ -16,7 +16,8 @@
     "worker:dev": "tsx watch src/jobs/main.ts",
     "expiry:run": "tsx src/scripts/run-expiry.ts",
     "search:setup": "tsx src/scripts/search-setup.ts",
-    "search:reindex": "tsx src/scripts/search-reindex.ts"
+    "search:reindex": "tsx src/scripts/search-reindex.ts",
+    "payments:reconcile": "tsx src/scripts/run-reconcile.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

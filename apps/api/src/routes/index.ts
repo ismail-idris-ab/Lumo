@@ -10,6 +10,9 @@ import { chatsRouter } from './chats';
 import { notificationsRouter } from './notifications';
 import { reportsRouter } from './reports';
 import { verificationRouter } from './verification';
+import { promotionsRouter } from './promotions';
+import { subscriptionsRouter } from './subscriptions';
+import { paymentsRouter } from './payments';
 import { adminRouter } from './admin';
 
 // Versioned API router — mounted at /api/v1 in app.ts.
@@ -31,4 +34,7 @@ v1Router.use('/chats', chatsRouter);
 v1Router.use('/notifications', notificationsRouter);
 v1Router.use('/reports', reportsRouter);
 v1Router.use('/verification', verificationRouter);
+v1Router.use('/promotions', promotionsRouter);
+v1Router.use('/subscriptions', subscriptionsRouter);
+v1Router.use('/payments', paymentsRouter);
 v1Router.use('/admin', adminRouter);
