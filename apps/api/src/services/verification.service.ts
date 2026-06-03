@@ -22,38 +22,50 @@ export function getDocUploadSignature(userId: string): VerificationUploadSignatu
 export async function applyForVerification(
   userId: string,
   input: unknown,
-): Promise<{ id: string; status: string }> {
+): Promise<{ id: string; status: string; feePaid: boolean }> {
   const { businessName, docs } = applyVerificationSchema.parse(input);
+  const docsJson = docs as unknown as Prisma.InputJsonValue;
 
+  // One pending request at a time. If it's already PAID it's under review — block.
+  // If unpaid, let the seller revise docs and (re)pay the fee.
   const existing = await prisma.verificationRequest.findFirst({
     where: { userId, status: 'PENDING' },
-    select: { id: true },
+    select: { id: true, feePaid: true },
   });
-  if (existing) throw AppError.conflict('You already have a pending verification request');
+  if (existing?.feePaid) {
+    throw AppError.conflict('You already have a verification request under review');
+  }
 
-  // NOTE: verification fee (Paystack) is gated in Phase 5 — submission is free for now.
-  const request = await prisma.verificationRequest.create({
-    data: {
-      userId,
-      businessName: businessName ?? null,
-      docs: docs as unknown as Prisma.InputJsonValue,
-      status: 'PENDING',
-    },
-  });
+  const request = existing
+    ? await prisma.verificationRequest.update({
+        where: { id: existing.id },
+        data: { businessName: businessName ?? null, docs: docsJson },
+      })
+    : await prisma.verificationRequest.create({
+        data: {
+          userId,
+          businessName: businessName ?? null,
+          docs: docsJson,
+          status: 'PENDING',
+        },
+      });
+
   await prisma.sellerProfile.upsert({
     where: { userId },
     create: { userId, verification: 'PENDING' },
     update: { verification: 'PENDING' },
   });
 
-  return { id: request.id, status: request.status };
+  // Fee is gated: the request becomes reviewable only after a VERIFICATION payment (see payment.service).
+  return { id: request.id, status: request.status, feePaid: request.feePaid };
 }
 
 // ── Admin review ──
 
 export async function listVerificationRequests(status: 'PENDING' | 'VERIFIED' | 'REJECTED' = 'PENDING') {
   const requests = await prisma.verificationRequest.findMany({
-    where: { status },
+    // Gate: only fee-paid requests reach the review queue (unpaid PENDING ones are hidden).
+    where: { status, ...(status === 'PENDING' ? { feePaid: true } : {}) },
     orderBy: { createdAt: 'desc' },
     include: { user: { select: { id: true, name: true, email: true } } },
   });

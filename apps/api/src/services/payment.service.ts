@@ -159,9 +159,17 @@ export async function fulfillPayment(reference: string, paidAmountKobo: number):
         });
         break;
       }
-      case 'VERIFICATION':
-        // Request already exists (PENDING) — admin reviews it. Fee just recorded.
+      case 'VERIFICATION': {
+        // Unlock the request for admin review (fee gate). requestId is carried in metadata.
+        const requestId = typeof meta.requestId === 'string' ? meta.requestId : null;
+        if (requestId) {
+          await tx.verificationRequest.updateMany({
+            where: { id: requestId, userId: payment.userId, status: 'PENDING' },
+            data: { feePaid: true },
+          });
+        }
         break;
+      }
     }
   });
 

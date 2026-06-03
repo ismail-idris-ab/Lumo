@@ -4,10 +4,13 @@ import { useState } from 'react';
 import {
   applyVerificationSchema,
   verificationDocTypeValues,
+  VERIFICATION_FEE_KOBO,
   type VerificationDoc,
 } from '@lumo/shared';
 import { api, ApiError } from '@/lib/api-client';
+import { startCheckout } from '@/lib/checkout';
 import { uploadVerificationDoc } from '@/lib/upload';
+import { formatNaira } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput, inputClassName } from '@/components/ui/field';
 
@@ -26,7 +29,6 @@ export default function VerificationPage() {
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -60,28 +62,18 @@ export default function VerificationPage() {
     }
     setBusy(true);
     try {
-      await api.post('/verification/apply', parsed.data);
-      setDone(true);
+      // Save the request, then redirect to pay the verification fee. Review is gated on payment.
+      const res = await api.post<{ id: string }>('/verification/apply', parsed.data);
+      await startCheckout({ purpose: 'VERIFICATION', requestId: res.id });
+      // startCheckout redirects to Paystack; we only fall through on error.
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        setError('You already have a pending verification request.');
+        setError('You already have a verification request under review.');
       } else {
         setError(e instanceof ApiError ? e.message : 'Could not submit');
       }
-    } finally {
       setBusy(false);
     }
-  }
-
-  if (done) {
-    return (
-      <div className="space-y-3">
-        <h1 className="text-2xl font-bold">Verification submitted</h1>
-        <p className="text-muted-foreground">
-          Your documents are under review. We&apos;ll notify you once a decision is made.
-        </p>
-      </div>
-    );
   }
 
   return (
@@ -91,6 +83,8 @@ export default function VerificationPage() {
         <p className="text-sm text-muted-foreground">
           Verified sellers earn buyer trust and a badge. Upload your ID (and a business document if
           you sell as a business). Documents are stored privately and only seen by our review team.
+          A one-time {formatNaira(VERIFICATION_FEE_KOBO)} fee applies — you&apos;ll pay it after
+          submitting, then our team reviews your documents.
         </p>
       </div>
 
@@ -156,7 +150,7 @@ export default function VerificationPage() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button onClick={submit} disabled={busy || uploading || docs.length === 0}>
-        {busy ? 'Submitting…' : 'Submit for review'}
+        {busy ? 'Redirecting…' : `Submit & pay ${formatNaira(VERIFICATION_FEE_KOBO)}`}
       </Button>
     </div>
   );

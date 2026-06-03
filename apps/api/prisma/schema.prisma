@@ -104,6 +104,7 @@ model VerificationRequest {
   userId       String
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   status       VerificationStatus @default(PENDING)
+  feePaid      Boolean            @default(false) // gate: admin reviews only after the verification fee is paid
   businessName String?
   docs         Json // [{ url, publicId, type }] — private Cloudinary assets
   reason       String? // rejection reason
