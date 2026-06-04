@@ -1,0 +1,126 @@
+# Render Blueprint — Lumo API + worker.
+# Web (Next.js) deploys to Vercel separately. Postgres = Supabase, Redis = Upstash,
+# Search = Meilisearch Cloud — all external, wired via the env group below.
+#
+# Cron is NOT defined here: expiry sweep, payment reconcile, and search reindex run
+# inside the worker via BullMQ repeatable job schedulers (apps/api/src/jobs/main.ts).
+#
+# First deploy: create the blueprint, then fill every `sync: false` secret in the
+# Render dashboard (Environment → lumo-shared group). JWT secrets auto-generate.
+
+services:
+  # ── REST API (Express) ──────────────────────────────────────────────
+  - type: web
+    name: lumo-api
+    runtime: node
+    region: frankfurt # closest Render region to Nigeria; match Supabase/Upstash region
+    plan: starter
+    branch: main
+    rootDir: . # monorepo root — pnpm filters target apps/api
+    healthCheckPath: /api/v1/health
+    buildCommand: >-
+      corepack enable &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @lumo/api prisma:generate &&
+      pnpm --filter @lumo/shared build &&
+      pnpm --filter @lumo/api build
+    # Apply pending migrations once per deploy, before the new instance goes live.
+    preDeployCommand: pnpm --filter @lumo/api prisma:deploy
+    startCommand: pnpm --filter @lumo/api start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - fromGroup: lumo-shared
+
+  # ── BullMQ worker (expiry, reconcile, search sync/reindex) ───────────
+  - type: worker
+    name: lumo-worker
+    runtime: node
+    region: frankfurt
+    plan: starter
+    branch: main
+    rootDir: .
+    buildCommand: >-
+      corepack enable &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @lumo/api prisma:generate &&
+      pnpm --filter @lumo/shared build &&
+      pnpm --filter @lumo/api build
+    startCommand: pnpm --filter @lumo/api worker:start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - fromGroup: lumo-shared
+
+# Shared env group — referenced by both services so secrets are set once.
+envVarGroups:
+  - name: lumo-shared
+    envVars:
+      # Auth — generated once, kept stable across deploys.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: ACCESS_TTL
+        value: 15m
+      - key: REFRESH_TTL
+        value: 30d
+
+      # Public URLs / CORS — set to real prod domains in the dashboard.
+      # API_BASE_URL  → https://api.lumo.ng   (this service's public URL)
+      # WEB_BASE_URL  → https://lumo.ng       (Vercel app)
+      # COOKIE_DOMAIN → .lumo.ng              (so api + web share the refresh cookie)
+      # CORS_ALLOWED_ORIGINS → https://lumo.ng,https://www.lumo.ng
+      - key: API_BASE_URL
+        sync: false
+      - key: WEB_BASE_URL
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+      # Database (Supabase) — DATABASE_URL pooled :6543 ?pgbouncer=true, DIRECT_URL :5432.
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+
+      # Redis (Upstash) — rediss:// URL.
+      - key: REDIS_URL
+        sync: false
+      - key: RATE_LIMIT_REDIS_PREFIX
+        value: lumo:rl:
+
+      # Search (Meilisearch Cloud).
+      - key: SEARCH_HOST
+        sync: false
+      - key: SEARCH_API_KEY
+        sync: false
+
+      # Images (Cloudinary).
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # Payments (Paystack) — LIVE keys in prod. Webhook URL in Paystack dashboard:
+      # https://api.lumo.ng/api/v1/payments/webhook
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: PAYSTACK_WEBHOOK_SECRET
+        sync: false
+
+      # Email (Resend).
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: Lumo <no-reply@lumo.ng>
+
+      # Monitoring (Sentry) — DSN added in a later step.
+      - key: SENTRY_DSN
+        sync: false

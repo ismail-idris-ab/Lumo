@@ -17,6 +17,7 @@
     "make-admin": "tsx src/scripts/make-admin.ts",
     "worker": "tsx src/jobs/main.ts",
     "worker:dev": "tsx watch src/jobs/main.ts",
+    "worker:start": "node dist/jobs/main.js",
     "expiry:run": "tsx src/scripts/run-expiry.ts",
     "search:setup": "tsx src/scripts/search-setup.ts",
     "search:reindex": "tsx src/scripts/search-reindex.ts",
