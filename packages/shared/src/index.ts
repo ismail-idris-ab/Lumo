@@ -11,3 +11,4 @@ export * from './schemas/chat';
 export * from './schemas/report';
 export * from './schemas/verification';
 export * from './schemas/payment';
+export * from './schemas/analytics';
