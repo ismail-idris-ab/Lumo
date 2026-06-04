@@ -111,8 +111,12 @@ search reindex run inside the worker via BullMQ repeatable schedulers
 
 1. Import the repo. Set **Root Directory = `apps/web`** (keep "include files outside root" on).
 2. `vercel.json` handles the build (`@lumo/shared` → `@lumo/web`), region, and install.
-3. Set env: `NEXT_PUBLIC_API_BASE_URL=https://<api-domain>/api/v1` and
-   `NEXT_PUBLIC_WEB_BASE_URL=https://lumo.ng`.
+3. Set env: `NEXT_PUBLIC_API_BASE_URL=https://<api-domain>/api/v1`,
+   `NEXT_PUBLIC_WEB_BASE_URL=https://lumo.ng`, `SENTRY_DSN` (server) +
+   `NEXT_PUBLIC_SENTRY_DSN` (browser).
+4. (Optional) Readable prod stack traces: set `SENTRY_ORG`, `SENTRY_PROJECT`, and
+   `SENTRY_AUTH_TOKEN` (build-time) so the build uploads source maps to Sentry. Skipped
+   automatically when any are unset.
 
 ### Go-live checklist
 
