@@ -27,5 +27,11 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
+  {
+    // Node config files (.mjs) run in Node — give them the Node globals so `no-undef`
+    // doesn't flag `process` etc. (TS files get no-undef disabled by typescript-eslint).
+    files: ['**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+  },
   prettier,
 );
