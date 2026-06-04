@@ -169,3 +169,15 @@ export function bucketRevenueByDay(
   }
   return series;
 }
+
+// Fetch SUCCESS payments in range and bucket them. The 2h slack guards the WAT day boundary
+// so payments early on the first WAT day (still "yesterday" in UTC) are not missed.
+export async function getRevenueSeries(days: number): Promise<RevenueSeries> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - days * DAY_MS - 2 * 60 * 60 * 1000);
+  const payments = await prisma.payment.findMany({
+    where: { status: 'SUCCESS', createdAt: { gte: windowStart } },
+    select: { createdAt: true, amountKobo: true },
+  });
+  return { days, series: bucketRevenueByDay(payments, days, now) };
+}
