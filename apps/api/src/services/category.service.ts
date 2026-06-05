@@ -4,8 +4,24 @@ import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { writeAudit, type Actor } from '../lib/audit';
 
-export function listCategories() {
-  return prisma.category.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] });
+// Categories are read on nearly every public page but change only via admin mutations, and the DB
+// round-trip (Supabase, cross-region) costs seconds. Cache the flat list in-process with a short
+// TTL and bust it on any write. Single API instance → no cross-node coherency concern; a multi-node
+// deploy would at worst serve <TTL-stale categories.
+const CATEGORIES_TTL_MS = 60_000;
+let categoriesCache: { data: Category[]; at: number } | null = null;
+
+export function invalidateCategoriesCache() {
+  categoriesCache = null;
+}
+
+export async function listCategories(): Promise<Category[]> {
+  if (categoriesCache && Date.now() - categoriesCache.at < CATEGORIES_TTL_MS) {
+    return categoriesCache.data;
+  }
+  const data = await prisma.category.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] });
+  categoriesCache = { data, at: Date.now() };
+  return data;
 }
 
 export interface CategoryNode extends Category {
@@ -54,6 +70,7 @@ export async function createCategory(input: unknown, actor: Actor): Promise<Cate
     after: category,
     ip: actor.ip,
   });
+  invalidateCategoriesCache();
   return category;
 }
 
@@ -87,6 +104,7 @@ export async function updateCategory(id: string, input: unknown, actor: Actor): 
     after: category,
     ip: actor.ip,
   });
+  invalidateCategoriesCache();
   return category;
 }
 
@@ -112,4 +130,5 @@ export async function deleteCategory(id: string, actor: Actor): Promise<void> {
     before,
     ip: actor.ip,
   });
+  invalidateCategoriesCache();
 }

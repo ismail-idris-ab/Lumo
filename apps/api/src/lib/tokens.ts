@@ -10,11 +10,16 @@ export interface AccessPayload {
 }
 
 export function signAccessToken(payload: AccessPayload): string {
-  return jwt.sign(payload, config.JWT_ACCESS_SECRET, { expiresIn: config.ACCESS_TTL });
+  return jwt.sign(payload, config.JWT_ACCESS_SECRET, {
+    expiresIn: config.ACCESS_TTL,
+    algorithm: 'HS256',
+  });
 }
 
 export function verifyAccessToken(token: string): AccessPayload {
-  const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET);
+  // Pin the algorithm — without an allow-list jwt.verify accepts any alg in the header,
+  // opening algorithm-confusion attacks. We only ever issue HS256.
+  const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET, { algorithms: ['HS256'] });
   if (typeof decoded === 'string' || !decoded.sub) {
     throw new Error('Malformed access token');
   }
