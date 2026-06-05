@@ -8,8 +8,8 @@ describe('bucketRevenueByDay', () => {
   it('zero-fills to exactly `days` ascending points when there are no payments', () => {
     const series = bucketRevenueByDay([], 7, NOW);
     expect(series).toHaveLength(7);
-    expect(series[0].date).toBe('2026-06-04'); // 6 days before today (WAT)
-    expect(series[6].date).toBe('2026-06-10'); // today (WAT)
+    expect(series[0]?.date).toBe('2026-06-04'); // 6 days before today (WAT)
+    expect(series[6]?.date).toBe('2026-06-10'); // today (WAT)
     expect(series.every((p) => p.totalKobo === 0 && p.count === 0)).toBe(true);
     expect([...series].sort((a, b) => a.date.localeCompare(b.date))).toEqual(series);
   });
@@ -34,8 +34,10 @@ describe('bucketRevenueByDay', () => {
       7,
       NOW,
     );
-    expect(series.find((p) => p.date === '2026-06-05')!.totalKobo).toBe(10000);
-    expect(series.find((p) => p.date === '2026-06-04')!.totalKobo).toBe(0);
+    const watDay = series.find((p) => p.date === '2026-06-05');
+    const prevDay = series.find((p) => p.date === '2026-06-04');
+    expect(watDay?.totalKobo).toBe(10000);
+    expect(prevDay?.totalKobo).toBe(0);
   });
 
   it('includes a payment on the window-start day and excludes one before the window', () => {
@@ -47,7 +49,8 @@ describe('bucketRevenueByDay', () => {
       7,
       NOW,
     );
-    expect(series.find((p) => p.date === '2026-06-04')!.totalKobo).toBe(1000);
+    const windowStartDay = series.find((p) => p.date === '2026-06-04');
+    expect(windowStartDay?.totalKobo).toBe(1000);
     expect(series.some((p) => p.date === '2026-06-03')).toBe(false);
   });
 });
