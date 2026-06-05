@@ -1,4 +1,4 @@
-import type { ListingStatus } from '@lumo/shared';
+import type { ListingStatus, RevenuePoint, RevenueSeries } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 
 export interface SellerAnalytics {
@@ -130,4 +130,54 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
       successfulPayments: revAll._count._all,
     },
   };
+}
+
+// Africa/Lagos is UTC+1 year-round (no DST). Shift then read the UTC calendar date to get
+// the WAT day. Pure + deterministic — `now` is injected so it is unit-testable.
+const WAT_OFFSET_MS = 60 * 60 * 1000;
+const DAY_MS = 86_400_000;
+
+function watDayKey(d: Date): string {
+  return new Date(d.getTime() + WAT_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+export interface RevenueInput {
+  createdAt: Date;
+  amountKobo: number;
+}
+
+// Bucket SUCCESS payments into a zero-filled, ascending series of `days` WAT days ending today.
+export function bucketRevenueByDay(
+  payments: RevenueInput[],
+  days: number,
+  now: Date,
+): RevenuePoint[] {
+  const series: RevenuePoint[] = [];
+  const index = new Map<string, RevenuePoint>();
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now.getTime() + WAT_OFFSET_MS - i * DAY_MS).toISOString().slice(0, 10);
+    const point: RevenuePoint = { date, totalKobo: 0, count: 0 };
+    series.push(point);
+    index.set(date, point);
+  }
+  for (const p of payments) {
+    const point = index.get(watDayKey(p.createdAt));
+    if (point) {
+      point.totalKobo += p.amountKobo;
+      point.count += 1;
+    }
+  }
+  return series;
+}
+
+// Fetch SUCCESS payments in range and bucket them. The 2h slack guards the WAT day boundary
+// so payments early on the first WAT day (still "yesterday" in UTC) are not missed.
+export async function getRevenueSeries(days: number): Promise<RevenueSeries> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - days * DAY_MS - 2 * 60 * 60 * 1000);
+  const payments = await prisma.payment.findMany({
+    where: { status: 'SUCCESS', createdAt: { gte: windowStart } },
+    select: { createdAt: true, amountKobo: true },
+  });
+  return { days, series: bucketRevenueByDay(payments, days, now) };
 }

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
 import cors, { type CorsOptions } from 'cors';
@@ -57,6 +58,16 @@ export function createApp(): Express {
   app.use('/api/v1', v1Router);
 
   app.use(notFoundHandler);
+
+  // Report only server faults (5xx) + uncategorised errors to Sentry; 4xx are client noise.
+  // No-op unless SENTRY_DSN is set (see instrument.ts). Must precede the response handler.
+  Sentry.setupExpressErrorHandler(app, {
+    shouldHandleError: (err) => {
+      const status = (err as { statusCode?: number }).statusCode;
+      return status === undefined || status >= 500;
+    },
+  });
+
   app.use(errorHandler);
 
   return app;

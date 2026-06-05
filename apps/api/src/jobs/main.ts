@@ -1,4 +1,6 @@
+import '../instrument'; // Sentry — load before anything else.
 import { Queue, Worker } from 'bullmq';
+import { Sentry } from '../instrument';
 import { createRedisConnection } from '../lib/redis';
 import { logger } from '../lib/logger';
 import { prisma } from '../lib/prisma';
@@ -42,6 +44,9 @@ async function main() {
     },
     { connection },
   );
+  maintenanceWorker.on('failed', (job, err) =>
+    Sentry.captureException(err, { tags: { queue: QUEUE_NAMES.maintenance, job: job?.name } }),
+  );
   closers.push(() => maintenanceWorker.close(), () => maintenance.close());
 
   // ── Search queue: per-listing sync + nightly reconcile (only if search configured) ──
@@ -64,6 +69,9 @@ async function main() {
       },
       { connection },
     );
+    searchWorker.on('failed', (job, err) =>
+      Sentry.captureException(err, { tags: { queue: QUEUE_NAMES.search, job: job?.name } }),
+    );
     closers.push(() => searchWorker.close(), () => search.close());
     logger.info('🔎 Search worker started');
   } else {
@@ -77,6 +85,7 @@ async function main() {
     for (const close of closers) await close();
     connection.disconnect();
     await prisma.$disconnect();
+    await Sentry.flush(2000); // drain buffered events before exit
     process.exit(0);
   }
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
@@ -85,5 +94,6 @@ async function main() {
 
 main().catch((err) => {
   logger.error(err, 'Worker failed to start');
-  process.exit(1);
+  Sentry.captureException(err);
+  void Sentry.flush(2000).finally(() => process.exit(1));
 });

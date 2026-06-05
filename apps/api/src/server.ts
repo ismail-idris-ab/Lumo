@@ -1,3 +1,4 @@
+import './instrument'; // Sentry — must load before the HTTP server / Express.
 import { createServer } from 'node:http';
 import { createApp } from './app';
 import { config } from './config/env';
