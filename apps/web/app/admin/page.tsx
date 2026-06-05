@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { formatNaira } from '@/lib/format';
 import { StatCard } from '@/components/stat-card';
+import { RevenueChart } from '@/components/revenue-chart';
 
 interface AdminAnalytics {
   users: number;
@@ -35,6 +36,8 @@ export default function AdminOverview() {
         <StatCard label="Revenue (30d)" value={formatNaira(data.revenue.last30dKobo)} />
         <StatCard label="Successful payments" value={data.revenue.successfulPayments} />
       </div>
+
+      <RevenueChart />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Link href="/admin/listings" className="rounded-lg border p-4 hover:bg-accent">
