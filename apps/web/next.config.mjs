@@ -37,15 +37,20 @@ const nextConfig = {
   },
 };
 
-// Wrap with Sentry. Source-map upload is opt-in: it only runs when SENTRY_AUTH_TOKEN +
-// SENTRY_ORG + SENTRY_PROJECT are set (e.g. on Vercel), otherwise the build is unaffected.
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  // Upload source maps for readable prod stack traces, then delete them from the build output
-  // so original source is never served to the browser.
-  sourcemaps: { deleteSourcemapsAfterUpload: true },
-});
+// Wrap with Sentry for PRODUCTION BUILDS ONLY. The Sentry webpack plugin is build-time tooling
+// (source-map upload, release tagging) and adds large per-compile overhead — applying it in
+// `next dev` made route compiles take 60s+. Dev gets the plain config; the runtime SDK still
+// loads via instrumentation*.ts (no-op without a DSN). Source-map upload is opt-in: it only runs
+// when SENTRY_AUTH_TOKEN + SENTRY_ORG + SENTRY_PROJECT are set (e.g. on Vercel).
+export default process.env.NODE_ENV === 'production'
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: !process.env.CI,
+      widenClientFileUpload: true,
+      // Upload source maps for readable prod stack traces, then delete them from the build output
+      // so original source is never served to the browser.
+      sourcemaps: { deleteSourcemapsAfterUpload: true },
+    })
+  : nextConfig;
