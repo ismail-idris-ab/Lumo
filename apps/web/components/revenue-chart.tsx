@@ -37,7 +37,11 @@ export function RevenueChart() {
   return (
     <section
       className="rounded-lg border p-4"
-      aria-label={`Revenue over the last ${days} days, total ${formatNaira(totalKobo)}`}
+      aria-label={
+        data
+          ? `Revenue over the last ${days} days, total ${formatNaira(totalKobo)}`
+          : `Revenue over the last ${days} days`
+      }
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Revenue</h2>
