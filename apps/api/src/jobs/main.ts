@@ -8,12 +8,14 @@ import { isSearchConfigured } from '../lib/search';
 import { runExpirySweep } from '../services/expiry.service';
 import { reconcilePendingPayments } from '../services/payment.service';
 import { reindexAllApproved, syncListingDoc } from '../services/search-sync';
+import { computeMarketPrices } from '../services/market-price.service';
 import {
   EXPIRY_SWEEP_INTERVAL_MS,
   JOB_NAMES,
   QUEUE_NAMES,
   RECONCILE_INTERVAL_MS,
   REINDEX_INTERVAL_MS,
+  MARKET_PRICE_INTERVAL_MS,
   type SyncListingJob,
 } from './queues';
 
@@ -35,11 +37,17 @@ async function main() {
     { every: RECONCILE_INTERVAL_MS },
     { name: JOB_NAMES.reconcilePayments },
   );
+  await maintenance.upsertJobScheduler(
+    JOB_NAMES.computeMarketPrice,
+    { every: MARKET_PRICE_INTERVAL_MS },
+    { name: JOB_NAMES.computeMarketPrice },
+  );
   const maintenanceWorker = new Worker(
     QUEUE_NAMES.maintenance,
     async (job) => {
       if (job.name === JOB_NAMES.expirySweep) return runExpirySweep();
       if (job.name === JOB_NAMES.reconcilePayments) return reconcilePendingPayments();
+      if (job.name === JOB_NAMES.computeMarketPrice) return computeMarketPrices();
       logger.warn({ job: job.name }, 'Unknown maintenance job');
     },
     { connection },
@@ -73,6 +81,8 @@ async function main() {
       Sentry.captureException(err, { tags: { queue: QUEUE_NAMES.search, job: job?.name } }),
     );
     closers.push(() => searchWorker.close(), () => search.close());
+    // Catch-up reindex on startup: syncs all approved listings missed while worker was down.
+    await search.add(JOB_NAMES.reindexAll, {});
     logger.info('🔎 Search worker started');
   } else {
     logger.warn('Search not configured — search worker disabled');
