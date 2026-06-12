@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { getListing } from '@/lib/api';
+import { getListing, getSellerReviews } from '@/lib/api';
 import { formatNaira, locationLabel } from '@/lib/format';
-import { ListingActions } from '@/components/listing/listing-actions';
-import { SITE_NAME, breadcrumbJsonLd, jsonLdScript, productJsonLd } from '@/lib/seo';
+import { AttributeGrid } from '@/components/listing/attribute-grid';
+import { SellerSidebar } from '@/components/listing/seller-sidebar';
+import { breadcrumbJsonLd, jsonLdScript, productJsonLd } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -22,7 +23,6 @@ export async function generateMetadata({
   const { slug } = await params;
   const listing = await getListing(slug);
   if (!listing) return { title: 'Listing not found' };
-
   const title = `${listing.title} — ${formatNaira(listing.priceKobo)}`;
   const description = listing.description.slice(0, 160);
   const image = listing.images.find((i) => i.isPrimary)?.url ?? listing.images[0]?.url;
@@ -42,12 +42,20 @@ export async function generateMetadata({
 export default async function ListingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const listing = await getListing(slug);
-  if (!listing) notFound(); // 404 for missing/unavailable (expired/suspended) listings
+  if (!listing) notFound();
+
+  const reviewData = await getSellerReviews(listing.id);
 
   const primary = listing.images.find((i) => i.isPrimary) ?? listing.images[0];
+  const otherImages = listing.images.filter((i) => !i.isPrimary).slice(0, 4);
+
+  const attributeSchema = listing.category?.attributeSchema as
+    | { key: string; label: string; primary?: boolean; format?: string }[]
+    | null
+    | undefined;
 
   return (
-    <main className="container grid gap-8 py-8 lg:grid-cols-2">
+    <main className="container py-6">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdScript(productJsonLd(listing))}
@@ -65,53 +73,89 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
         )}
       />
 
-      {/* Gallery */}
-      <div className="space-y-2">
-        <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-          {primary ? (
-            <Image src={primary.url} alt={listing.title} fill sizes="(max-width:1024px) 100vw, 50vw" className="object-cover" priority />
-          ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">No image</div>
-          )}
-        </div>
-        {listing.images.length > 1 && (
-          <div className="grid grid-cols-5 gap-2">
-            {listing.images.map((img) => (
-              <div key={img.id} className="relative aspect-square overflow-hidden rounded bg-muted">
-                <Image src={img.url} alt={listing.title} fill sizes="20vw" className="object-cover" />
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+        {/* ── LEFT COLUMN ── */}
+        <div className="space-y-4">
+          {/* Gallery */}
+          <div className="space-y-2">
+            <div className="relative overflow-hidden rounded-xl bg-muted" style={{ aspectRatio: '4/3' }}>
+              {primary ? (
+                <Image
+                  src={primary.url}
+                  alt={listing.title}
+                  fill
+                  sizes="(max-width:1024px) 100vw, 65vw"
+                  className="object-cover"
+                  priority
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No image
+                </div>
+              )}
+              {listing.isPromoted && (
+                <span className="absolute left-3 top-3 rounded-md bg-emerald-600 px-2 py-1 text-xs font-bold text-white">
+                  Promoted
+                </span>
+              )}
+              <span className="absolute bottom-3 left-3 rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white">
+                📷 1/{listing.images.length || 1}
+              </span>
+            </div>
+            {otherImages.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {otherImages.map((img) => (
+                  <div key={img.id} className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+                    <Image src={img.url} alt={listing.title} fill sizes="25vw" className="object-cover" />
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Details */}
-      <div className="space-y-5">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">{listing.title}</h1>
-          <p className="text-2xl font-bold text-primary">{formatNaira(listing.priceKobo)}</p>
-          <p className="text-sm text-muted-foreground">
-            {CONDITION_LABEL[listing.condition]} · {locationLabel(listing.state, listing.city, listing.area)}
-          </p>
-        </div>
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+            <span>📍 {locationLabel(listing.state, listing.city, listing.area)}</span>
+            <span>🕐 {new Date(listing.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <span className="ml-auto">👁 {listing.viewsCount} views</span>
+          </div>
 
-        {listing.seller && (
-          <ListingActions listingId={listing.id} slug={listing.slug} sellerId={listing.seller.id} />
-        )}
+          {/* Title */}
+          <h1 className="text-2xl font-bold text-slate-900">{listing.title}</h1>
 
-        <div className="prose-sm whitespace-pre-wrap text-sm leading-relaxed">
-          {listing.description}
-        </div>
+          {/* Attribute grid or condition fallback */}
+          {attributeSchema && listing.attributes ? (
+            <AttributeGrid
+              schema={attributeSchema}
+              attributes={listing.attributes as Record<string, unknown>}
+            />
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-semibold">{CONDITION_LABEL[listing.condition] ?? listing.condition}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400">Condition</p>
+                </div>
+              </div>
+            </div>
+          )}
 
-        {listing.seller && (
-          <div className="rounded-lg border p-4 text-sm">
-            <p className="font-medium">{listing.seller.name}</p>
-            <p className="text-muted-foreground">
-              {listing.seller.verification === 'VERIFIED' ? '✓ Verified seller · ' : ''}
-              on {SITE_NAME} since {new Date(listing.seller.createdAt).getFullYear()}
+          {/* Description */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+              {listing.description}
             </p>
           </div>
-        )}
+        </div>
+
+        {/* ── RIGHT SIDEBAR ── */}
+        <div className="lg:sticky lg:top-20 lg:self-start">
+          <SellerSidebar
+            listing={listing}
+            reviews={reviewData.reviews}
+            reviewTotal={reviewData.total}
+          />
+        </div>
       </div>
     </main>
   );
