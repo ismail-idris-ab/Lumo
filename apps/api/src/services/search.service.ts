@@ -22,13 +22,19 @@ function docToSearchListing(d: ListingDoc): SearchListing {
     categorySlug: d.categorySlug,
     categoryName: d.categoryName,
     isPromoted: d.isPromoted,
+    promotionTier: d.promotionTier ?? 'NONE',
     primaryImage: d.primaryImage,
     createdAt: new Date(d.createdAt).toISOString(),
+    sellerVerified: d.sellerVerified ?? false,
+    sellerRating: d.sellerRating ?? null,
+    sellerYears: d.sellerYears ?? 0,
   };
 }
 
 function listingToSearchListing(l: PublicListing): SearchListing {
   const primary = l.images.find((i) => i.isPrimary) ?? l.images[0];
+  const sellerCreatedAt = l.seller?.createdAt ? new Date(l.seller.createdAt) : new Date();
+  const sellerYears = Math.floor((Date.now() - sellerCreatedAt.getTime()) / (365.25 * 24 * 3600 * 1000));
   return {
     id: l.id,
     slug: l.slug,
@@ -41,15 +47,19 @@ function listingToSearchListing(l: PublicListing): SearchListing {
     categorySlug: l.category?.slug ?? '',
     categoryName: l.category?.name ?? '',
     isPromoted: l.isPromoted,
+    promotionTier: (l as any).promotionTier ?? 'NONE',
     primaryImage: primary?.url ?? null,
     createdAt: l.createdAt,
+    sellerVerified: l.seller?.verification === 'VERIFIED',
+    sellerRating: l.seller?.ratingAvg ?? null,
+    sellerYears,
   };
 }
 
 const quote = (v: string) => `"${v.replace(/"/g, '\\"')}"`;
 
 async function meiliSearch(q: ListingQuery): Promise<Paginated<SearchListing>> {
-  const filters: string[] = [];
+  const filters: string[] = ['status = "APPROVED"'];
   if (q.categorySlug) filters.push(`categorySlug = ${quote(q.categorySlug)}`);
   if (q.state) filters.push(`state = ${quote(q.state)}`);
   if (q.city) filters.push(`city = ${quote(q.city)}`);
