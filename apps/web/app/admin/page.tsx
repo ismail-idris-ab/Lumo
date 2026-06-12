@@ -4,8 +4,14 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { formatNaira } from '@/lib/format';
+import dynamic from 'next/dynamic';
 import { StatCard } from '@/components/stat-card';
-import { RevenueChart } from '@/components/revenue-chart';
+
+// Lazy-load the chart — defers its parse/eval from page bootstrap. Shows skeleton while loading.
+const RevenueChart = dynamic(
+  () => import('@/components/revenue-chart').then((m) => ({ default: m.RevenueChart })),
+  { ssr: false, loading: () => <div className="h-48 animate-pulse rounded-lg bg-muted" /> },
+);
 
 interface AdminAnalytics {
   users: number;
