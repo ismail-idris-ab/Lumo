@@ -90,7 +90,7 @@ envVarGroups:
       - key: REDIS_URL
         sync: false
       - key: RATE_LIMIT_REDIS_PREFIX
-        value: lumo:rl:
+        value: "lumo:rl:"
 
       # Search (Meilisearch Cloud).
       - key: SEARCH_HOST
@@ -119,7 +119,7 @@ envVarGroups:
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
-        value: Lumo <no-reply@lumo.ng>
+        value: "Lumo <no-reply@lumo.ng>"
 
       # Monitoring (Sentry) — DSN added in a later step.
       - key: SENTRY_DSN
