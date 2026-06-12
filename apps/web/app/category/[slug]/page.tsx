@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import type { CategorySummary } from '@lumo/shared';
 import { getCategories, searchListings } from '@/lib/api';
-import { ListingGrid } from '@/components/listing-card';
+import { ListingFeed } from '@/components/listing-card';
 import { SearchBar } from '@/components/search-bar';
 import { SITE_NAME, breadcrumbJsonLd, jsonLdScript } from '@/lib/seo';
 
@@ -58,7 +58,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
         <SearchBar />
       </div>
       <p className="text-sm text-muted-foreground">{results.total} listings</p>
-      <ListingGrid items={results.items} />
+      <ListingFeed items={results.items} />
     </main>
   );
 }

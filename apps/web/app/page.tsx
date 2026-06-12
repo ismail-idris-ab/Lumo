@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getCategories, searchListings } from '@/lib/api';
 import { SearchBar } from '@/components/search-bar';
-import { ListingGrid } from '@/components/listing-card';
+import { ListingFeed } from '@/components/listing-card';
 
 // ISR: home revalidates periodically.
 export const revalidate = 60;
@@ -43,7 +43,7 @@ export default async function HomePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Latest listings</h2>
-        <ListingGrid items={results.items} />
+        <ListingFeed items={results.items} />
       </section>
     </main>
   );
