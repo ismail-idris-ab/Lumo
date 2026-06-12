@@ -1,11 +1,15 @@
-import type { CategorySummary, Paginated, PublicListing, SearchListing } from '@lumo/shared';
+import type { CategorySummary, Paginated, PublicListing, SearchListing, SellerReviewDTO } from '@lumo/shared';
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
 // Server-side GET with ISR revalidation. Returns null on any failure (pages degrade gracefully).
 async function get<T>(path: string, revalidate = 60): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE}${path}`, { next: { revalidate } });
+    const isDev = process.env.NODE_ENV === 'development';
+    const res = await fetch(
+      `${BASE}${path}`,
+      isDev ? { cache: 'no-store' } : { next: { revalidate } },
+    );
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -26,4 +30,14 @@ export async function searchListings(qs: string): Promise<Paginated<SearchListin
 export async function getListing(slug: string): Promise<PublicListing | null> {
   const data = await get<{ listing: PublicListing }>(`/listings/${encodeURIComponent(slug)}`, 60);
   return data?.listing ?? null;
+}
+
+export async function getSellerReviews(
+  listingId: string,
+): Promise<{ reviews: SellerReviewDTO[]; total: number }> {
+  const data = await get<{ reviews: SellerReviewDTO[]; total: number }>(
+    `/listings/${encodeURIComponent(listingId)}/reviews`,
+    60,
+  );
+  return data ?? { reviews: [], total: 0 };
 }
