@@ -5,6 +5,9 @@ import { rateLimit } from '../middleware/ratelimit';
 import { param } from '../lib/request';
 import * as listingService from '../services/listing.service';
 import * as imageService from '../services/image.service';
+import { createReview, createReviewSchema, getSellerReviews } from '../services/review.service';
+import { prisma } from '../lib/prisma';
+import { AppError } from '../lib/errors';
 
 export const listingsRouter: Router = Router();
 
@@ -121,5 +124,34 @@ listingsRouter.delete(
   asyncHandler(async (req, res) => {
     const images = await imageService.deleteImage(param(req, 'id'), param(req, 'imageId'), req.user!);
     res.json({ images });
+  }),
+);
+
+// ── Reviews ──
+
+// POST /api/v1/listings/:id/reviews — create review for listing seller (login required).
+listingsRouter.post(
+  '/:id/reviews',
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const data = createReviewSchema.parse(req.body);
+    const review = await createReview(param(req, 'id'), req.user!.id, data);
+    res.status(201).json({ review });
+  }),
+);
+
+// GET /api/v1/listings/:id/reviews — get seller reviews for listing.
+listingsRouter.get(
+  '/:id/reviews',
+  asyncHandler(async (req, res) => {
+    const listing = await prisma.listing.findUnique({
+      where: { id: param(req, 'id') },
+      select: { ownerId: true },
+    });
+    if (!listing) throw AppError.notFound('Listing not found');
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 20);
+    const result = await getSellerReviews(listing.ownerId, page, limit);
+    res.json(result);
   }),
 );
