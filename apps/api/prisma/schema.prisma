@@ -50,6 +50,14 @@ enum PaymentPurpose {
   FEATURED
 }
 
+enum PromotionTier {
+  NONE
+  BOOST
+  TOP
+  DIAMOND
+  ENTERPRISE
+}
+
 enum PaymentStatus {
   PENDING
   SUCCESS
@@ -160,6 +168,7 @@ model Category {
   parent   Category?  @relation("Sub", fields: [parentId], references: [id])
   children Category[] @relation("Sub")
   order    Int        @default(0)
+  attributeSchema Json?
   listings Listing[]
 }
 
@@ -183,8 +192,13 @@ model Listing {
   chats         Chat[]
   reports       Report[]
   contactReveals ContactReveal[]
+  reviews       Review[]
   isPromoted    Boolean        @default(false)
   promotedUntil DateTime?
+  promotionTier   PromotionTier  @default(NONE)
+  attributes      Json?
+  marketLowKobo   Int?
+  marketHighKobo  Int?
   expiresAt     DateTime
   viewsCount    Int            @default(0)
   createdAt     DateTime       @default(now())
@@ -324,6 +338,8 @@ model Payment {
 
 model Review {
   id        String   @id @default(cuid())
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
   sellerId  String
   seller    User     @relation("ReviewsReceived", fields: [sellerId], references: [id])
   authorId  String

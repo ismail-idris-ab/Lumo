@@ -50,3 +50,7 @@ export const reportReasonValues = [
 ] as const;
 export const reportReasonSchema = z.enum(reportReasonValues);
 export type ReportReason = z.infer<typeof reportReasonSchema>;
+
+export const promotionTierValues = ['NONE', 'BOOST', 'TOP', 'DIAMOND', 'ENTERPRISE'] as const;
+export const promotionTierSchema = z.enum(promotionTierValues);
+export type PromotionTier = z.infer<typeof promotionTierSchema>;
