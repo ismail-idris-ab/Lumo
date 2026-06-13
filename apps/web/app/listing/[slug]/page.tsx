@@ -75,12 +75,12 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
         )}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* ── LEFT COLUMN ── */}
         <div className="space-y-4">
           {/* Gallery */}
           <div className="space-y-2">
-            <div className="relative overflow-hidden rounded-xl bg-muted" style={{ aspectRatio: '4/3' }}>
+            <div className="relative h-[380px] overflow-hidden rounded-xl bg-muted md:h-[440px]">
               {primary ? (
                 <Image
                   src={primary.url}
@@ -104,11 +104,11 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
                 📷 1/{listing.images.length || 1}
               </span>
             </div>
-            {otherImages.length > 0 && (
-              <div className="grid grid-cols-4 gap-2">
-                {otherImages.map((img) => (
-                  <div key={img.id} className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-                    <Image src={img.url} alt={listing.title} fill sizes="25vw" className="object-cover" />
+            {listing.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {listing.images.map((img) => (
+                  <div key={img.id} className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    <Image src={img.url} alt={listing.title} fill sizes="80px" className="object-cover" />
                   </div>
                 ))}
               </div>
