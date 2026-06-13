@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lumo — Design Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
+  h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; margin: 24px 0 10px; }
+
+  /* ── CARD ── */
+  .cards-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .card { width: 170px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .card.enterprise { border-color: #1e293b; border-width: 2px; }
+  .card.diamond    { border-color: #10b981; border-width: 2px; }
+  .card.top        { border-color: #f97316; border-width: 2px; }
+  .card.boost      { border-color: #fbbf24; border-width: 2px; }
+  .thumb { height: 120px; position: relative; overflow: hidden; background: linear-gradient(135deg,#475569,#0f172a); display:flex; align-items:center; justify-content:center; }
+  .thumb img { width:100%; height:100%; object-fit:cover; }
+  .thumb-placeholder { font-size: 40px; opacity: .3; }
+  /* tier corner badge */
+  .tier-badge { position: absolute; top: 8px; left: 8px; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+  .tier-enterprise { background: #16a34a; color: #fff; }
+  .tier-diamond    { background: #059669; color: #fff; }
+  .tier-top        { background: #ea580c; color: #fff; }
+  .tier-boost      { background: #d97706; color: #fff; }
+  /* trust overlays */
+  .trust-verified { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,.95); font-size: 9px; font-weight: 600; color: #0369a1; padding: 2px 6px; border-radius: 999px; display:flex; align-items:center; gap:3px; }
+  .trust-rating   { position: absolute; bottom: 8px; right: 8px; background: rgba(255,255,255,.95); font-size: 9px; font-weight: 700; color: #1e293b; padding: 2px 6px; border-radius: 999px; }
+  .card-body { padding: 8px 10px 10px; }
+  .card-price { font-size: 15px; font-weight: 800; color: #16a34a; }
+  .card-title { font-size: 11px; font-weight: 500; margin-top: 2px; line-height: 1.4; color: #1e293b; }
+  .card-desc  { font-size: 10px; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-loc   { font-size: 10px; color: #64748b; margin-top: 4px; display:flex; align-items:center; gap:3px; }
+  .card-tags  { margin-top: 6px; display:flex; gap:4px; align-items:center; }
+  .tag { font-size: 9px; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; }
+  .tag-fire { font-size: 12px; }
+
+  /* ── DETAIL PAGE ── */
+  .detail-wrap { display: grid; grid-template-columns: 1fr 280px; gap: 16px; margin-top: 8px; }
+  .detail-left {}
+  .detail-right {}
+
+  /* gallery */
+  .gallery { border-radius: 10px; overflow: hidden; background: #000; position: relative; height: 260px; display:flex; align-items:center; justify-content:center; }
+  .gallery-img { width:100%; height:100%; object-fit:cover; opacity:.8; font-size:60px; display:flex; align-items:center; justify-content:center; background: linear-gradient(135deg,#334155,#0f172a); }
+  .gallery-tier { position:absolute; top:10px; left:10px; background:#16a34a; color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; }
+  .gallery-counter { position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,.6); color:#fff; font-size:11px; padding:3px 8px; border-radius:999px; }
+  .gallery-nav { position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.4); color:#fff; border:none; width:28px; height:28px; border-radius:50%; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .gallery-prev { left:8px; }
+  .gallery-next { right:8px; }
+  .thumbs { display:flex; gap:6px; margin-top:8px; }
+  .thumb-sm { width:56px; height:42px; border-radius:6px; overflow:hidden; background: linear-gradient(135deg,#94a3b8,#64748b); border:2px solid transparent; cursor:pointer; }
+  .thumb-sm.active { border-color:#16a34a; }
+
+  /* meta row */
+  .meta-row { display:flex; align-items:center; gap:12px; margin:10px 0 4px; font-size:12px; color:#64748b; flex-wrap:wrap; }
+  .meta-row .views { margin-left:auto; }
+  .detail-title { font-size:20px; font-weight:700; margin-bottom:12px; }
+
+  /* attribute grid */
+  .attr-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 8px; padding:14px; background:#fff; border-radius:10px; border:1px solid #e2e8f0; }
+  .attr-item {}
+  .attr-val { font-size:13px; font-weight:600; color:#1e293b; }
+  .attr-key { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:#94a3b8; margin-top:1px; }
+  .hide-more { text-align:right; margin-top:8px; font-size:12px; color:#16a34a; font-weight:600; cursor:pointer; }
+
+  /* description */
+  .desc-box { background:#fff; border-radius:10px; border:1px solid #e2e8f0; padding:14px; margin-top:10px; font-size:13px; color:#334155; line-height:1.6; }
+
+  /* contact + share */
+  .contact-row { display:flex; gap:8px; margin-top:10px; }
+  .btn-contact { flex:1; background:#16a34a; color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .share-row { display:flex; gap:6px; margin-top:8px; }
+  .share-btn { width:32px; height:32px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+
+  /* right sidebar */
+  .sidebar-card { background:#fff; border-radius:10px; border:1px solid #e2e8f0; padding:14px; margin-bottom:10px; }
+  .price-big { font-size:22px; font-weight:800; color:#16a34a; }
+  .price-tag { font-size:11px; border:1px solid #cbd5e1; border-radius:4px; padding:2px 8px; color:#475569; display:inline-block; margin-top:4px; }
+  .market-price { font-size:12px; color:#475569; margin-top:8px; padding:8px 10px; background:#f8fafc; border-radius:6px; }
+  .btn-callback { width:100%; border:1.5px solid #16a34a; background:#fff; color:#16a34a; border-radius:8px; padding:9px; font-size:13px; font-weight:600; cursor:pointer; margin-top:8px; }
+  .seller-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .seller-avatar { width:36px; height:36px; border-radius:50%; background:#fecaca; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#991b1b; }
+  .seller-name { font-size:13px; font-weight:600; }
+  .seller-meta { font-size:10px; color:#64748b; display:flex; gap:6px; margin-top:2px; flex-wrap:wrap; }
+  .badge-verified { background:#eff6ff; color:#1d4ed8; padding:1px 6px; border-radius:999px; font-weight:600; }
+  .seller-response { font-size:10px; color:#64748b; margin-top:4px; }
+  .btn-show-contact { width:100%; background:#16a34a; color:#fff; border:none; border-radius:8px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:6px; }
+  .btn-start-chat { width:100%; border:1.5px solid #16a34a; background:#fff; color:#16a34a; border-radius:8px; padding:9px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .feedback-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1.5px solid #fbbf24; border-radius:8px; margin-top:8px; cursor:pointer; }
+  .feedback-row span:first-child { font-size:12px; color:#92400e; font-weight:600; }
+  .feedback-row span:last-child { font-size:12px; color:#16a34a; font-weight:600; }
+  .action-row { display:flex; gap:6px; margin-top:8px; }
+  .btn-unavail { flex:1; border:1.5px solid #3b82f6; background:#fff; color:#2563eb; border-radius:6px; padding:7px; font-size:11px; font-weight:600; cursor:pointer; }
+  .btn-report  { flex:1; border:1.5px solid #ef4444; background:#fff; color:#dc2626; border-radius:6px; padding:7px; font-size:11px; font-weight:600; cursor:pointer; }
+  .safety-card { background:#fff; border-radius:10px; border:1px solid #e2e8f0; padding:14px; }
+  .safety-card h4 { font-size:13px; font-weight:700; text-align:center; margin-bottom:8px; }
+  .safety-card ul { padding-left:16px; font-size:11px; color:#475569; line-height:1.8; }
+  .btn-post-like { width:100%; border:1.5px solid #16a34a; background:#fff; color:#16a34a; border-radius:8px; padding:10px; font-size:13px; font-weight:600; cursor:pointer; margin-top:8px; text-transform:uppercase; letter-spacing:.5px; }
+</style>
+</head>
+<body>
+
+<h2>Lumo — Jiji-style Design Mockup</h2>
+<p class="subtitle">Card chrome (top) + full detail page layout (bottom). Based on your screenshots.</p>
+
+<!-- CARDS -->
+<div class="section-label">Listing cards — tier chrome</div>
+<div class="cards-row">
+
+  <!-- NONE -->
+  <div class="card">
+    <div class="thumb" style="background:linear-gradient(135deg,#94a3b8,#64748b)">
+      <span class="thumb-placeholder">📱</span>
+    </div>
+    <div class="card-body">
+      <div class="card-price">₦400,000</div>
+      <div class="card-title">Apple iPhone 13 Pro 128GB Blue</div>
+      <div class="card-desc">Iphone 13 pro changed screen</div>
+      <div class="card-loc">📍 Lagos, Ikeja</div>
+      <div class="card-tags"><span class="tag">Used</span></div>
+    </div>
+  </div>
+
+  <!-- BOOST -->
+  <div class="card boost">
+    <div class="thumb" style="background:linear-gradient(135deg,#fcd34d,#f59e0b)">
+      <span class="thumb-placeholder">📱</span>
+      <span class="tier-badge tier-boost">Boosted</span>
+    </div>
+    <div class="card-body">
+      <div class="card-price">₦400,000</div>
+      <div class="card-title">Apple iPhone 13 Pro 128GB Blue</div>
+      <div class="card-desc">Iphone 13 pro changed screen</div>
+      <div class="card-loc">📍 Lagos, Ikeja</div>
+      <div class="card-tags"><span class="tag">Used</span></div>
+    </div>
+  </div>
+
+  <!-- TOP -->
+  <div class="card top">
+    <div class="thumb" style="background:linear-gradient(135deg,#fb923c,#ea580c)">
+      <span class="thumb-placeholder">📱</span>
+      <span class="tier-badge tier-top">Top ad</span>
+    </div>
+    <div class="card-body">
+      <div class="card-price">₦400,000</div>
+      <div class="card-title">Apple iPhone 13 Pro 128GB Blue</div>
+      <div class="card-desc">Iphone 13 pro changed screen</div>
+      <div class="card-loc">📍 Lagos, Ikeja</div>
+      <div class="card-tags"><span class="tag">Used</span></div>
+    </div>
+  </div>
+
+  <!-- DIAMOND -->
+  <div class="card diamond">
+    <div class="thumb" style="background:linear-gradient(135deg,#6ee7b7,#059669)">
+      <span class="thumb-placeholder">📱</span>
+      <span class="tier-badge tier-diamond">Diamond</span>
+      <span class="trust-verified">✔ Verified ID</span>
+      <span class="trust-rating">4.7 ★</span>
+    </div>
+    <div class="card-body">
+      <div class="card-price">₦400,000</div>
+      <div class="card-title">Apple iPhone 13 Pro 128GB Blue</div>
+      <div class="card-desc">Iphone 13 pro changed screen</div>
+      <div class="card-loc">📍 Lagos, Ikeja</div>
+      <div class="card-tags"><span class="tag">Used</span> <span class="tag-fire">🔥</span></div>
+    </div>
+  </div>
+
+  <!-- ENTERPRISE -->
+  <div class="card enterprise">
+    <div class="thumb" style="background:linear-gradient(135deg,#475569,#0f172a)">
+      <span class="thumb-placeholder">📱</span>
+      <span class="tier-badge tier-enterprise">Enterprise</span>
+      <span class="trust-verified">✔ Verified ID</span>
+      <span class="trust-rating">4.7 ★</span>
+    </div>
+    <div class="card-body">
+      <div class="card-price">₦400,000</div>
+      <div class="card-title">Apple iPhone 13 Pro 128GB Blue</div>
+      <div class="card-desc">Iphone 13 pro changed screen</div>
+      <div class="card-loc">📍 Lagos, Ikeja</div>
+      <div class="card-tags"><span class="tag">Used</span> <span class="tag-fire">🔥</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DETAIL PAGE -->
+<div class="section-label">Listing detail page — Jiji-style 2-column layout</div>
+<div class="detail-wrap">
+
+  <!-- LEFT -->
+  <div class="detail-left">
+    <div class="gallery">
+      <div class="gallery-img">📱</div>
+      <span class="gallery-tier">Enterprise</span>
+      <span class="gallery-counter">📷 1/2</span>
+      <button class="gallery-nav gallery-prev">‹</button>
+      <button class="gallery-nav gallery-next">›</button>
+    </div>
+    <div class="thumbs">
+      <div class="thumb-sm active"></div>
+      <div class="thumb-sm" style="background:linear-gradient(135deg,#64748b,#334155)"></div>
+    </div>
+
+    <div class="meta-row">
+      <span>📍 Lagos, Ikeja</span>
+      <span>🕐 1 hour ago</span>
+      <span class="badge" style="background:#eff6ff;color:#1e40af;font-size:10px;padding:2px 7px;border-radius:4px">Promoted</span>
+      <span class="views">👁 263 views</span>
+    </div>
+    <div class="detail-title">Apple iPhone 13 Pro 128 GB Blue</div>
+
+    <!-- Attribute grid -->
+    <div class="attr-grid">
+      <div class="attr-item"><div class="attr-val">Apple</div><div class="attr-key">Brand</div></div>
+      <div class="attr-item"><div class="attr-val">iPhone 13 Pro</div><div class="attr-key">Model</div></div>
+      <div class="attr-item"><div class="attr-val">Used</div><div class="attr-key">Condition</div></div>
+      <div class="attr-item"><div class="attr-val">No cracks</div><div class="attr-key">Second condition</div></div>
+      <div class="attr-item"><div class="attr-val">128 GB</div><div class="attr-key">Internal storage</div></div>
+      <div class="attr-item"><div class="attr-val">6 GB</div><div class="attr-key">RAM</div></div>
+      <div class="attr-item"><div class="attr-val">No</div><div class="attr-key">Card slot</div></div>
+      <div class="attr-item"><div class="attr-val">Quad 12 MP</div><div class="attr-key">Main camera</div></div>
+      <div class="attr-item" style="display:none" class="extra"><div class="attr-val">Dual 12 MP</div><div class="attr-key">Selfie camera</div></div>
+      <div class="attr-item" style="display:none" class="extra"><div class="attr-val">6.1 inches</div><div class="attr-key">Screen size</div></div>
+    </div>
+    <div class="hide-more">Show more ▾</div>
+
+    <div class="desc-box">Iphone 13 pro changed screen</div>
+
+    <div class="contact-row">
+      <button class="btn-contact">📞 Show contact</button>
+    </div>
+    <div class="share-row">
+      <button class="share-btn" style="background:#1877f2;color:#fff">f</button>
+      <button class="share-btn" style="background:#e1306c;color:#fff">ig</button>
+      <button class="share-btn" style="background:#1da1f2;color:#fff">tw</button>
+      <button class="share-btn" style="background:#25d366;color:#fff">wa</button>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="detail-right">
+    <div class="sidebar-card">
+      <div class="price-big">₦ 400,000</div>
+      <div class="price-tag">Fixed price</div>
+      <div style="margin-top:4px"><span class="price-tag" style="cursor:pointer">Price History</span></div>
+      <div class="market-price">Market price: <strong>₦ 450 K ~ 496.65 K</strong></div>
+      <button class="btn-callback">Request call back</button>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="seller-row">
+        <div class="seller-avatar">C</div>
+        <div>
+          <div class="seller-name">chibs gadgets</div>
+          <div class="seller-meta">
+            <span>👤 3+ years on Lumo</span>
+            <span class="badge-verified">✔ Verified ID</span>
+          </div>
+          <div class="seller-response">💬 Typically replies within an hour</div>
+        </div>
+      </div>
+      <button class="btn-show-contact">📞 Show contact</button>
+      <button class="btn-start-chat">💬 Start chat</button>
+      <div class="feedback-row">
+        <span>😊 39 Feedback</span>
+        <span>view all ›</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="action-row">
+        <button class="btn-unavail">Mark unavailable</button>
+        <button class="btn-report">🚩 Report Abuse</button>
+      </div>
+    </div>
+
+    <div class="safety-card">
+      <h4>Safety tips</h4>
+      <ul>
+        <li>Avoid paying in advance, even for delivery</li>
+        <li>Meet the seller at a safe public place</li>
+        <li>Inspect the item and ensure it's exactly what you want</li>
+        <li>Only pay if you're satisfied</li>
+      </ul>
+      <button class="btn-post-like">Post ad like this</button>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

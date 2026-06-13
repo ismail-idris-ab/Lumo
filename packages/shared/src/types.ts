@@ -3,6 +3,7 @@ import type {
   ListingStatus,
   PaymentPurpose,
   PaymentStatus,
+  PromotionTier,
   Role,
   VerificationStatus,
 } from './enums';
@@ -47,6 +48,7 @@ export interface CategorySummary {
   id: string;
   name: string;
   slug: string;
+  attributeSchema: unknown | null;
 }
 
 export interface SellerSummary {
@@ -55,6 +57,8 @@ export interface SellerSummary {
   avatarUrl: string | null;
   createdAt: string; // ISO — drives "account age"
   verification: VerificationStatus | null;
+  ratingAvg: number | null;
+  ratingCount: number;
 }
 
 export interface PublicListing {
@@ -70,11 +74,15 @@ export interface PublicListing {
   area: string | null;
   categoryId: string;
   isPromoted: boolean;
+  promotionTier: PromotionTier;
   promotedUntil: string | null;
   expiresAt: string; // ISO
   viewsCount: number;
   createdAt: string; // ISO
   images: ListingImageDTO[];
+  attributes: Record<string, unknown> | null;
+  marketLowKobo: number | null;
+  marketHighKobo: number | null;
   category?: CategorySummary;
   seller?: SellerSummary;
   favorited?: boolean; // set when fetched in an authed context
@@ -107,6 +115,16 @@ export interface PaymentDTO {
   createdAt: string;
 }
 
+export interface SellerReviewDTO {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string | null;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+}
+
 export interface NotificationDTO {
   id: string;
   type: string;
@@ -127,6 +145,17 @@ export interface ChatSummary {
   createdAt: string;
 }
 
+export interface SellerPublicProfile {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  createdAt: string;
+  verification: VerificationStatus | null;
+  ratingAvg: number | null;
+  ratingCount: number;
+  listingCount: number;
+}
+
 // Lightweight search result card (same shape from Meili or the Postgres fallback).
 export interface SearchListing {
   id: string;
@@ -140,6 +169,10 @@ export interface SearchListing {
   categorySlug: string;
   categoryName: string;
   isPromoted: boolean;
+  promotionTier: PromotionTier;
   primaryImage: string | null;
   createdAt: string; // ISO
+  sellerVerified: boolean;
+  sellerRating: number | null;
+  sellerYears: number;
 }

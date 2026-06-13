@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { PublicListing, SellerReviewDTO } from '@lumo/shared';
 import { formatNaira } from '@/lib/format';
 import { MarketPriceCard } from './market-price-card';
@@ -55,7 +56,9 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
               {seller.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-semibold">{seller.name}</p>
+              <Link href={`/seller/${seller.id}`} className="truncate font-semibold hover:text-emerald-700 hover:underline">
+                {seller.name}
+              </Link>
               <div className="mt-0.5 flex flex-wrap gap-1.5 text-xs">
                 {sellerYears >= 1 && (
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">

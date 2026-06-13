@@ -1,0 +1,42 @@
+<h2>Promotion tier system — how far do we go?</h2>
+<p class="subtitle">The spec defines 5 tiers. Your DB only has a binary <code>isPromoted</code> flag. Pick the approach.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Keep binary — adapt the spec</h3>
+      <p>Two visual states only: <strong>plain</strong> and <strong>promoted</strong>. Promoted cards get an amber frame + "Boosted" badge. No schema change needed — ships today.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Zero migration</li><li>Matches existing Paystack packages</li><li>Simpler UI to maintain</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Less visual differentiation</li><li>Can't upsell diamond/enterprise later without changes</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Full 5-tier system (spec as written)</h3>
+      <p>Add <code>promotionTier</code> enum to Prisma schema: <code>NONE | BOOST | TOP | DIAMOND | ENTERPRISE</code>. Each tier gets distinct card chrome — frame colour, badge, rail label for diamond/enterprise.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Matches the spec exactly</li><li>Visual revenue hierarchy is clear</li><li>Future-proof for upsell flows</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>DB migration + Paystack package update needed</li><li>More complex promo-purchase UI</li><li>1–2 extra days of work</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>3-tier shortcut (none / boost / featured)</h3>
+      <p>Add <code>isFeatured</code> boolean (already in schema for stores). Map: plain = none, <code>isPromoted</code> = boost badge, <code>isFeatured</code> = diamond-style gold frame. No new enum needed.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Richer than binary, cheaper than 5-tier</li><li>Reuses existing <code>isFeatured</code> field</li><li>Minimal migration</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>isFeatured was meant for stores, not listings</li><li>Slightly awkward semantics</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#888">Recommendation: <strong>A</strong> to ship fast, <strong>B</strong> if you want the full revenue model now.</p>

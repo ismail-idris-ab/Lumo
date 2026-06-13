@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { getListing, getSellerReviews } from '@/lib/api';
+import { getListing, getSellerReviews, getSimilarListings } from '@/lib/api';
+import { ListingFeed } from '@/components/listing-card';
 import { formatNaira, locationLabel } from '@/lib/format';
 import { AttributeGrid } from '@/components/listing/attribute-grid';
 import { ReviewSection } from '@/components/listing/review-section';
@@ -47,6 +48,12 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
     getSellerReviews(slug),
   ]);
   if (!listing) notFound();
+
+  const similar = await getSimilarListings(
+    listing.category?.slug ?? '',
+    listing.state,
+    listing.id,
+  );
 
   const primary = listing.images.find((i) => i.isPrimary) ?? listing.images[0];
 
@@ -119,6 +126,15 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
             <span>📍 {locationLabel(listing.state, listing.city, listing.area)}</span>
             <span>🕐 {new Date(listing.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
             <span className="ml-auto">👁 {listing.viewsCount} views</span>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`${listing.title} — ${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://lumo.ng'}/listing/${listing.slug}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1 text-xs font-semibold text-white hover:opacity-90"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.115.551 4.1 1.516 5.82L.057 23.26a.75.75 0 0 0 .916.921l5.556-1.45A11.942 11.942 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.007-1.371l-.36-.213-3.724.972.992-3.624-.234-.373A9.818 9.818 0 1 1 12 21.818z"/></svg>
+              Share on WhatsApp
+            </a>
           </div>
 
           {/* Title */}
@@ -169,6 +185,14 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
           />
         </div>
       </div>
+
+      {/* Similar listings */}
+      {similar.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold text-slate-800">You might also like</h2>
+          <ListingFeed items={similar} />
+        </section>
+      )}
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import type { CategorySummary, Paginated, PublicListing, SearchListing, SellerReviewDTO } from '@lumo/shared';
+import type { CategorySummary, Paginated, PublicListing, SearchListing, SellerReviewDTO, SellerPublicProfile } from '@lumo/shared';
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
@@ -30,6 +30,21 @@ export async function searchListings(qs: string): Promise<Paginated<SearchListin
 export async function getListing(slug: string): Promise<PublicListing | null> {
   const data = await get<{ listing: PublicListing }>(`/listings/${encodeURIComponent(slug)}`, 60);
   return data?.listing ?? null;
+}
+
+export async function getSimilarListings(
+  categorySlug: string,
+  state: string,
+  excludeId: string,
+): Promise<SearchListing[]> {
+  const qs = new URLSearchParams({ categorySlug, state, limit: '4' }).toString();
+  const data = await get<Paginated<SearchListing>>(`/search?${qs}`, 120);
+  return (data?.items ?? []).filter((l) => l.id !== excludeId).slice(0, 4);
+}
+
+export async function getSellerProfile(sellerId: string): Promise<SellerPublicProfile | null> {
+  const data = await get<{ seller: SellerPublicProfile }>(`/sellers/${sellerId}`, 120);
+  return data?.seller ?? null;
 }
 
 export async function getSellerReviews(

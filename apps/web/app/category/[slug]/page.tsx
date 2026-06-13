@@ -8,8 +8,6 @@ import { SITE_NAME, breadcrumbJsonLd, jsonLdScript } from '@/lib/seo';
 
 export const revalidate = 120;
 
-// Pre-build all category pages at deploy time (small stable set).
-// Unknown slugs are resolved on-demand and then cached (ISR).
 export async function generateStaticParams() {
   const cats = await getCategories();
   return cats.map((c) => ({ slug: c.slug }));

@@ -1,0 +1,41 @@
+<h2>Implementation approach — how do we sequence this?</h2>
+<p class="subtitle">Full scope confirmed: 5-tier promo, attribute grid, market price, seller ratings. Three ways to get there.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>✦ Recommended — Schema-first, then UI in two waves</h3>
+      <p><strong>Wave 1 (schema + feed):</strong> All migrations in one PR (promotionTier, attributes, market price columns, SellerReview table). Redesign ListingCard with tier chrome + grid/list toggle. Ship.</p>
+      <p><strong>Wave 2 (detail page):</strong> Full detail page redesign — attribute grid, market-price band, lazy contact reveal, seller rating card, quick-reply chat openers.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Schema done once, both waves build on it</li><li>Wave 1 ships visible wins fast (card chrome)</li><li>Wave 2 is self-contained detail work</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Two PRs, not one</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Big bang — everything in one implementation plan</h3>
+      <p>One plan covers schema migrations, backend updates (promo logic, market-price job, review API), ListingFeed redesign, and full ListingDetail redesign. One large PR.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Single coherent diff</li><li>No intermediate "partial" state</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Very large context — higher risk of drift</li><li>Nothing ships until everything is done</li><li>Harder to review</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>UI-first — fake the new features, wire real data later</h3>
+      <p>Build the full UI with mock/hardcoded data first (promotionTier mapped from isPromoted, no real attribute grid). Get visual sign-off. Then add schema + real data in a second pass.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>See the full UI very fast</li><li>Easy to iterate on design before committing to schema</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Throwaway work when wiring real data</li><li>Risk: UI looks great but schema turns out not to fit</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

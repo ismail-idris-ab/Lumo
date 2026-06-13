@@ -1,12 +1,19 @@
 import { MeiliSearch, type Index } from 'meilisearch';
 import { config } from '../config/env';
-import type { Condition, ListingStatus } from '@lumo/shared';
+import type { Condition, ListingStatus, PromotionTier } from '@lumo/shared';
 import type { HydratedListing } from '../services/listing.service';
 
 export const LISTINGS_INDEX = 'listings';
 export const isSearchConfigured = Boolean(config.SEARCH_HOST && config.SEARCH_API_KEY);
 
-// Denormalised projection stored in Meili (TRD §11). Dates as epoch ms (sortable).
+export const TIER_WEIGHT: Record<PromotionTier, number> = {
+  NONE: 0,
+  BOOST: 1,
+  TOP: 2,
+  DIAMOND: 3,
+  ENTERPRISE: 4,
+};
+
 export interface ListingDoc {
   id: string;
   slug: string;
@@ -20,10 +27,15 @@ export interface ListingDoc {
   priceKobo: number;
   condition: Condition;
   isPromoted: boolean;
+  promotionTier: PromotionTier;
+  tierWeight: number;
   promotedUntil: number | null;
   createdAt: number;
   primaryImage: string | null;
   status: ListingStatus;
+  sellerVerified: boolean;
+  sellerRating: number | null;
+  sellerYears: number;
 }
 
 let client: MeiliSearch | null = null;
@@ -39,6 +51,9 @@ export function getListingsIndex(): Index<ListingDoc> {
 
 export function buildListingDoc(l: HydratedListing): ListingDoc {
   const primary = l.images.find((i) => i.isPrimary) ?? l.images[0];
+  const tier = (l.promotionTier ?? 'NONE') as PromotionTier;
+  const createdAt = l.owner.createdAt instanceof Date ? l.owner.createdAt : new Date(l.owner.createdAt);
+  const sellerYears = Math.floor((Date.now() - createdAt.getTime()) / (365.25 * 24 * 3600 * 1000));
   return {
     id: l.id,
     slug: l.slug,
@@ -52,14 +67,20 @@ export function buildListingDoc(l: HydratedListing): ListingDoc {
     priceKobo: l.priceKobo,
     condition: l.condition,
     isPromoted: l.isPromoted,
+    promotionTier: tier,
+    tierWeight: TIER_WEIGHT[tier],
     promotedUntil: l.promotedUntil ? l.promotedUntil.getTime() : null,
     createdAt: l.createdAt.getTime(),
     primaryImage: primary?.url ?? null,
     status: l.status,
+    sellerVerified: l.owner.sellerProfile?.verification === 'VERIFIED',
+    sellerRating: l.owner.sellerProfile?.ratingAvg && l.owner.sellerProfile.ratingAvg > 0
+      ? l.owner.sellerProfile.ratingAvg
+      : null,
+    sellerYears,
   };
 }
 
-// Relevance → promotion boost (bounded) → recency (TRD §11).
 const RANKING_RULES = [
   'words',
   'typo',
@@ -67,14 +88,13 @@ const RANKING_RULES = [
   'attribute',
   'sort',
   'exactness',
-  'isPromoted:desc',
+  'tierWeight:desc',
 ];
 
 const SEARCHABLE = ['title', 'description', 'categoryName', 'categorySlug', 'state', 'city', 'area'];
-const FILTERABLE = ['categorySlug', 'state', 'city', 'area', 'condition', 'priceKobo', 'isPromoted', 'status'];
-const SORTABLE = ['createdAt', 'priceKobo'];
+const FILTERABLE = ['categorySlug', 'state', 'city', 'area', 'condition', 'priceKobo', 'status', 'promotionTier', 'tierWeight'];
+const SORTABLE = ['createdAt', 'priceKobo', 'tierWeight'];
 
-// Create the index (if absent) and apply settings. Idempotent.
 export async function ensureSearchIndex(): Promise<void> {
   const c = getSearchClient();
   try {

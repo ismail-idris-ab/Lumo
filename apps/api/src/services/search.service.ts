@@ -47,7 +47,7 @@ function listingToSearchListing(l: PublicListing): SearchListing {
     categorySlug: l.category?.slug ?? '',
     categoryName: l.category?.name ?? '',
     isPromoted: l.isPromoted,
-    promotionTier: (l as any).promotionTier ?? 'NONE',
+    promotionTier: l.promotionTier ?? 'NONE',
     primaryImage: primary?.url ?? null,
     createdAt: l.createdAt,
     sellerVerified: l.seller?.verification === 'VERIFIED',
