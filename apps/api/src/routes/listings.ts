@@ -140,12 +140,13 @@ listingsRouter.post(
   }),
 );
 
-// GET /api/v1/listings/:id/reviews — get seller reviews for listing.
+// GET /api/v1/listings/:id/reviews — get seller reviews for listing. Accepts cuid id or slug.
 listingsRouter.get(
   '/:id/reviews',
   asyncHandler(async (req, res) => {
-    const listing = await prisma.listing.findUnique({
-      where: { id: param(req, 'id') },
+    const idOrSlug = param(req, 'id');
+    const listing = await prisma.listing.findFirst({
+      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       select: { ownerId: true },
     });
     if (!listing) throw AppError.notFound('Listing not found');

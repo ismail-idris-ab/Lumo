@@ -41,10 +41,11 @@ export async function generateMetadata({
 
 export default async function ListingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const listing = await getListing(slug);
+  const [listing, reviewData] = await Promise.all([
+    getListing(slug),
+    getSellerReviews(slug),
+  ]);
   if (!listing) notFound();
-
-  const reviewData = await getSellerReviews(listing.id);
 
   const primary = listing.images.find((i) => i.isPrimary) ?? listing.images[0];
   const otherImages = listing.images.filter((i) => !i.isPrimary).slice(0, 4);
