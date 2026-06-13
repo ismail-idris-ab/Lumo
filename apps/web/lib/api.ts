@@ -37,11 +37,24 @@ export async function getSimilarListings(
   state: string,
   excludeId: string,
 ): Promise<SearchListing[]> {
-  const params = new URLSearchParams({ limit: '5' });
-  if (categorySlug) params.set('categorySlug', categorySlug);
-  if (state) params.set('state', state);
-  const data = await get<Paginated<SearchListing>>(`/search?${params.toString()}`, 120);
-  return (data?.items ?? []).filter((l) => l.id !== excludeId).slice(0, 4);
+  const exclude = (items: SearchListing[]) => items.filter((l) => l.id !== excludeId).slice(0, 4);
+
+  // Try same category + same state first.
+  if (categorySlug && state) {
+    const params = new URLSearchParams({ categorySlug, state, limit: '5' });
+    const data = await get<Paginated<SearchListing>>(`/search?${params.toString()}`, 120);
+    const results = exclude(data?.items ?? []);
+    if (results.length > 0) return results;
+  }
+
+  // Fall back to same category only (any state).
+  if (categorySlug) {
+    const params = new URLSearchParams({ categorySlug, limit: '5' });
+    const data = await get<Paginated<SearchListing>>(`/search?${params.toString()}`, 120);
+    return exclude(data?.items ?? []);
+  }
+
+  return [];
 }
 
 export async function getSellerProfile(sellerId: string): Promise<SellerPublicProfile | null> {
