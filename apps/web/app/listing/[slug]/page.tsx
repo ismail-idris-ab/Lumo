@@ -49,7 +49,6 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
   if (!listing) notFound();
 
   const primary = listing.images.find((i) => i.isPrimary) ?? listing.images[0];
-  const otherImages = listing.images.filter((i) => !i.isPrimary).slice(0, 4);
 
   const attributeSchema = listing.category?.attributeSchema as
     | { key: string; label: string; primary?: boolean; format?: string }[]

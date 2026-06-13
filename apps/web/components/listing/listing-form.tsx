@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,11 +25,25 @@ const formSchema = z.object({
 });
 type FormValues = z.input<typeof formSchema>;
 
+interface AttributeField {
+  key: string;
+  label: string;
+  primary?: boolean;
+  format?: string;
+}
+
 export function ListingForm({ listing }: { listing?: PublicListing }) {
   const router = useRouter();
   const editing = Boolean(listing);
   const [files, setFiles] = useState<FileList | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Dynamic attribute values — keyed by field.key
+  const [attrValues, setAttrValues] = useState<Record<string, string>>(() => {
+    if (!listing?.attributes) return {};
+    return Object.fromEntries(
+      Object.entries(listing.attributes).map(([k, v]) => [k, String(v ?? '')]),
+    );
+  });
 
   const { data: catData } = useQuery({
     queryKey: ['categories'],
@@ -40,6 +54,7 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -57,8 +72,24 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
       : { condition: 'USED' },
   });
 
+  const selectedCategoryId = watch('categoryId');
+  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  const attrSchema = selectedCategory?.attributeSchema as AttributeField[] | null | undefined;
+
+  // Clear attribute values when category changes (only in create mode).
+  useEffect(() => {
+    if (!editing) setAttrValues({});
+  }, [selectedCategoryId, editing]);
+
   async function onSubmit(values: FormValues) {
     setError(null);
+
+    // Collect non-empty attribute values.
+    const attributes: Record<string, string> = {};
+    for (const [k, v] of Object.entries(attrValues)) {
+      if (v.trim()) attributes[k] = v.trim();
+    }
+
     const payload = {
       title: values.title,
       description: values.description,
@@ -68,6 +99,7 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
       state: values.state,
       city: values.city,
       area: values.area || undefined,
+      ...(Object.keys(attributes).length > 0 ? { attributes } : {}),
     };
     try {
       let listingId = listing?.id;
@@ -77,7 +109,6 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
         const res = await api.post<{ listing: PublicListing }>('/listings', payload);
         listingId = res.listing.id;
       }
-      // Upload any newly-selected images.
       if (files && listingId) {
         const existing = listing?.images.length ?? 0;
         for (let i = 0; i < files.length; i++) {
@@ -122,6 +153,29 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
           ))}
         </select>
       </Field>
+
+      {/* Dynamic attribute fields — rendered when selected category has a schema */}
+      {attrSchema && attrSchema.length > 0 && (
+        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+          <p className="text-sm font-semibold text-slate-700">Product details</p>
+          <div className="grid grid-cols-2 gap-3">
+            {attrSchema.map((field) => (
+              <Field key={field.key} label={field.label}>
+                <input
+                  type="text"
+                  value={attrValues[field.key] ?? ''}
+                  onChange={(e) =>
+                    setAttrValues((prev) => ({ ...prev, [field.key]: e.target.value }))
+                  }
+                  placeholder={field.label}
+                  className={inputClassName}
+                />
+              </Field>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
         <Field label="State" error={errors.state?.message}>
           <FieldInput {...register('state')} placeholder="Lagos" />

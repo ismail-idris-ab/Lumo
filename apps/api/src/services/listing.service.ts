@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import {
   buildListingSlug,
   createListingSchema,
@@ -26,14 +26,14 @@ function ttlExpiry(): Date {
 // Includes for fully-hydrated public listing responses.
 export const listingInclude = {
   images: { orderBy: [{ isPrimary: 'desc' }, { order: 'asc' }] as const },
-  category: { select: { id: true, name: true, slug: true } },
+  category: { select: { id: true, name: true, slug: true, attributeSchema: true } },
   owner: {
     select: {
       id: true,
       name: true,
       avatarUrl: true,
       createdAt: true,
-      sellerProfile: { select: { verification: true } },
+      sellerProfile: { select: { verification: true, ratingAvg: true, ratingCount: true } },
     },
   },
 } satisfies Prisma.ListingInclude;
@@ -65,14 +65,25 @@ export function toPublicListing(l: HydratedListing): PublicListing {
       isPrimary: i.isPrimary,
       order: i.order,
     })),
-    category: l.category,
+    category: {
+      id: l.category.id,
+      name: l.category.name,
+      slug: l.category.slug,
+      attributeSchema: l.category.attributeSchema,
+    },
     seller: {
       id: l.owner.id,
       name: l.owner.name,
       avatarUrl: l.owner.avatarUrl,
       createdAt: l.owner.createdAt.toISOString(),
       verification: l.owner.sellerProfile?.verification ?? null,
+      ratingAvg: l.owner.sellerProfile?.ratingAvg ?? null,
+      ratingCount: l.owner.sellerProfile?.ratingCount ?? 0,
     },
+    promotionTier: (l.promotionTier ?? 'NONE') as import('@lumo/shared').PromotionTier,
+    attributes: l.attributes as Record<string, unknown> | null,
+    marketLowKobo: l.marketLowKobo,
+    marketHighKobo: l.marketHighKobo,
   };
 }
 
@@ -119,6 +130,7 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
       categoryId: data.categoryId,
       ownerId,
       expiresAt: ttlExpiry(),
+      attributes: (data.attributes as Prisma.InputJsonValue) ?? Prisma.JsonNull,
     },
     include: listingInclude,
   });
@@ -216,10 +228,13 @@ export async function updateListing(
   }
 
   const hasChanges = Object.keys(data).length > 0;
+  const { attributes, ...scalarData } = data;
   const listing = await prisma.listing.update({
     where: { id },
     data: {
-      ...data,
+      ...scalarData,
+      // Explicitly handle nullable JSON — Prisma requires Prisma.JsonNull not null.
+      ...(attributes !== undefined ? { attributes: (attributes as Prisma.InputJsonValue) ?? Prisma.JsonNull } : {}),
       // Material edits re-enter moderation (domain rule 2). Slug stays stable (SEO).
       ...(hasChanges ? { status: 'PENDING' } : {}),
     },
