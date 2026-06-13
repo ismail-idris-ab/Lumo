@@ -37,8 +37,10 @@ export async function getSimilarListings(
   state: string,
   excludeId: string,
 ): Promise<SearchListing[]> {
-  const qs = new URLSearchParams({ categorySlug, state, limit: '4' }).toString();
-  const data = await get<Paginated<SearchListing>>(`/search?${qs}`, 120);
+  const params = new URLSearchParams({ limit: '5' });
+  if (categorySlug) params.set('categorySlug', categorySlug);
+  if (state) params.set('state', state);
+  const data = await get<Paginated<SearchListing>>(`/search?${params.toString()}`, 120);
   return (data?.items ?? []).filter((l) => l.id !== excludeId).slice(0, 4);
 }
 
