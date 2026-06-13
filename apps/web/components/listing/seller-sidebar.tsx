@@ -1,6 +1,7 @@
 import type { PublicListing, SellerReviewDTO } from '@lumo/shared';
 import { formatNaira } from '@/lib/format';
 import { MarketPriceCard } from './market-price-card';
+import { ListingActions } from './listing-actions';
 import { SITE_NAME } from '@/lib/seo';
 
 interface Props {
@@ -33,15 +34,23 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
             />
           </div>
         )}
-        <button className="mt-3 w-full rounded-lg border border-emerald-600 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
-          Request call back
-        </button>
       </div>
+
+      {/* Contact + actions (client component — handles auth gate, reveal, chat, save, report) */}
+      {seller && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <ListingActions
+            listingId={listing.id}
+            slug={listing.slug}
+            sellerId={seller.id}
+          />
+        </div>
+      )}
 
       {/* Seller card */}
       {seller && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-700">
               {seller.name.charAt(0).toUpperCase()}
             </div>
@@ -73,16 +82,6 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button className="flex-1 rounded-lg border border-sky-400 py-2.5 text-xs font-medium text-sky-600">
-          Mark unavailable
-        </button>
-        <button className="flex-1 rounded-lg border border-rose-400 py-2.5 text-xs font-medium text-rose-600">
-          🚩 Report Abuse
-        </button>
-      </div>
-
       {/* Safety tips */}
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h3 className="mb-2 text-center text-sm font-semibold">Safety tips</h3>
@@ -92,9 +91,6 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
           <li>Inspect the item to ensure it is what you need.</li>
           <li>Only pay if you are satisfied.</li>
         </ul>
-        <button className="mt-3 w-full rounded-lg border border-emerald-600 py-2.5 text-xs font-semibold uppercase tracking-wide text-emerald-700 hover:bg-emerald-50">
-          Post ad like this
-        </button>
       </div>
     </div>
   );
