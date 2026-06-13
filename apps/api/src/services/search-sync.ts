@@ -21,6 +21,7 @@ export async function syncListingDoc(listingId: string): Promise<void> {
 }
 
 // Full reconcile: rebuild the index from Postgres (source of truth).
+// Upserts all approved docs first, then deletes any stale ones — avoids empty-index window.
 export async function reindexAllApproved(): Promise<number> {
   if (!isSearchConfigured) return 0;
   const index = getListingsIndex();
@@ -29,11 +30,17 @@ export async function reindexAllApproved(): Promise<number> {
     include: listingInclude,
   });
 
-  await index.deleteAllDocuments();
   if (listings.length > 0) {
     const task = await index.addDocuments(listings.map(buildListingDoc));
     await index.waitForTask(task.taskUid);
   }
-  logger.info({ count: listings.length }, 'Search reindex complete');
+
+  // Remove any stale docs (non-approved, expired, deleted) not in the current set.
+  const approvedIds = new Set(listings.map((l) => l.id));
+  const { results: allDocs } = await index.getDocuments({ limit: 10000, fields: ['id'] });
+  const staleIds = allDocs.map((d) => d.id as string).filter((id) => !approvedIds.has(id));
+  if (staleIds.length > 0) await index.deleteDocuments(staleIds);
+
+  logger.info({ count: listings.length, removed: staleIds.length }, 'Search reindex complete');
   return listings.length;
 }

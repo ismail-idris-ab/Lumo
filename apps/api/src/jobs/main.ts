@@ -4,7 +4,7 @@ import { Sentry } from '../instrument';
 import { createRedisConnection } from '../lib/redis';
 import { logger } from '../lib/logger';
 import { prisma } from '../lib/prisma';
-import { isSearchConfigured } from '../lib/search';
+import { ensureSearchIndex, isSearchConfigured } from '../lib/search';
 import { runExpirySweep } from '../services/expiry.service';
 import { reconcilePendingPayments } from '../services/payment.service';
 import { reindexAllApproved, syncListingDoc } from '../services/search-sync';
@@ -81,6 +81,8 @@ async function main() {
       Sentry.captureException(err, { tags: { queue: QUEUE_NAMES.search, job: job?.name } }),
     );
     closers.push(() => searchWorker.close(), () => search.close());
+    // Apply latest Meilisearch index settings (filterable attrs, ranking rules).
+    await ensureSearchIndex();
     // Catch-up reindex on startup: syncs all approved listings missed while worker was down.
     await search.add(JOB_NAMES.reindexAll, {});
     logger.info('🔎 Search worker started');

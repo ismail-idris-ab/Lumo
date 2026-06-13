@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { searchListings } from '@/lib/api';
-import { ListingGrid } from '@/components/listing-card';
+import { ListingFeed } from '@/components/listing-card';
 import { SearchBar } from '@/components/search-bar';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -52,7 +52,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         {results.total} result{results.total === 1 ? '' : 's'}
         {q ? ` for “${q}”` : ''}
       </p>
-      <ListingGrid items={results.items} />
+      <ListingFeed items={results.items} />
 
       {results.totalPages > 1 && (
         <div className="flex items-center justify-center gap-3 pt-4">
