@@ -56,7 +56,7 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
               {seller.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <Link href={`/seller/${seller.id}`} className="truncate font-semibold hover:text-emerald-700 hover:underline">
+              <Link href={`/seller/${seller.id}`} className="block font-semibold hover:text-emerald-700 hover:underline">
                 {seller.name}
               </Link>
               <div className="mt-0.5 flex flex-wrap gap-1.5 text-xs">
@@ -77,11 +77,17 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
             </div>
           </div>
 
-          {reviewTotal > 0 && (
-            <div className="mt-3 flex items-center justify-between rounded-lg border border-amber-200 px-3 py-2.5">
-              <span className="text-sm font-medium text-amber-800">😊 {reviewTotal} Feedback</span>
-            </div>
-          )}
+          <div className="mt-3 flex items-center justify-between">
+            <Link
+              href={`/seller/${seller.id}`}
+              className="text-xs font-medium text-emerald-700 hover:underline"
+            >
+              View all listings →
+            </Link>
+            {reviewTotal > 0 && (
+              <span className="text-xs text-amber-700">😊 {reviewTotal} Feedback</span>
+            )}
+          </div>
         </div>
       )}
 
