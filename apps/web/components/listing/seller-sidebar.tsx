@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import type { PublicListing, SellerReviewDTO } from '@lumo/shared';
 import { formatNaira } from '@/lib/format';
