@@ -79,8 +79,8 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
         {/* ── LEFT COLUMN ── */}
         <div className="space-y-4">
           {/* Gallery */}
-          <div className="space-y-2">
-            <div className="relative h-[380px] overflow-hidden rounded-xl bg-muted md:h-[440px]">
+          <div className="space-y-2 max-w-[520px]">
+            <div className="relative h-[340px] overflow-hidden rounded-xl bg-muted md:h-[380px]">
               {primary ? (
                 <Image
                   src={primary.url}
