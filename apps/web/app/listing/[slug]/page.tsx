@@ -75,12 +75,12 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
         )}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_560px]">
         {/* ── LEFT COLUMN ── */}
         <div className="space-y-4">
           {/* Gallery */}
-          <div className="space-y-2 max-w-[520px]">
-            <div className="relative h-[340px] overflow-hidden rounded-xl bg-muted md:h-[380px]">
+          <div className="space-y-2">
+            <div className="relative h-[380px] overflow-hidden rounded-xl bg-muted md:h-[440px]">
               {primary ? (
                 <Image
                   src={primary.url}
