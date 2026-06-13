@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getListing, getSellerReviews } from '@/lib/api';
 import { formatNaira, locationLabel } from '@/lib/format';
 import { AttributeGrid } from '@/components/listing/attribute-grid';
+import { ReviewSection } from '@/components/listing/review-section';
 import { SellerSidebar } from '@/components/listing/seller-sidebar';
 import { breadcrumbJsonLd, jsonLdScript, productJsonLd } from '@/lib/seo';
 
@@ -147,6 +148,17 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
               {listing.description}
             </p>
           </div>
+
+          {/* Reviews */}
+          {listing.seller && (
+            <ReviewSection
+              listingId={listing.id}
+              sellerId={listing.seller.id}
+              slug={listing.slug}
+              initialReviews={reviewData.reviews}
+              initialTotal={reviewData.total}
+            />
+          )}
         </div>
 
         {/* ── RIGHT SIDEBAR ── */}
