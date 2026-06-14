@@ -12,6 +12,14 @@ import { uploadListingImage } from '@/lib/upload';
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput, FieldTextarea, inputClassName } from '@/components/ui/field';
 
+const NG_STATES = [
+  'Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno',
+  'Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT - Abuja','Gombe',
+  'Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos',
+  'Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto',
+  'Taraba','Yobe','Zamfara',
+];
+
 // Local form schema (price in naira for humans; converted to kobo on submit).
 const formSchema = z.object({
   title: z.string().trim().min(3).max(100),
@@ -178,7 +186,12 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="State" error={errors.state?.message}>
-          <FieldInput {...register('state')} placeholder="Lagos" />
+          <select className={inputClassName} {...register('state')}>
+            <option value="">Select state…</option>
+            {NG_STATES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </Field>
         <Field label="City / LGA" error={errors.city?.message}>
           <FieldInput {...register('city')} placeholder="Ikeja" />

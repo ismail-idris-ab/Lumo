@@ -3,32 +3,29 @@ import Link from 'next/link';
 import { searchListings } from '@/lib/api';
 import { ListingFeed } from '@/components/listing-card';
 import { SearchBar } from '@/components/search-bar';
+import { SearchFilters } from '@/components/search-filters';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export const dynamic = 'force-dynamic'; // results depend on query params
+export const dynamic = 'force-dynamic';
 
 type SP = Record<string, string | string[] | undefined>;
 const str = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined);
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<SP>;
-}): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
   const q = str(sp.q);
   return {
     title: q ? `Search: ${q}` : 'Search listings',
     alternates: { canonical: '/search' },
-    robots: { index: !q }, // avoid indexing infinite query-param pages
+    robots: { index: !q },
   };
 }
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const params = new URLSearchParams();
-  for (const key of ['q', 'categorySlug', 'state', 'city', 'condition', 'sort']) {
+  for (const key of ['q', 'categorySlug', 'state', 'city', 'condition', 'sort', 'minPriceKobo', 'maxPriceKobo']) {
     const v = str(sp[key]);
     if (v) params.set(key, v);
   }
@@ -45,13 +42,27 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     return `/search?${next.toString()}`;
   };
 
+  // Pass current filter values to client component for controlled state.
+  const minKobo = str(sp.minPriceKobo);
+  const maxKobo = str(sp.maxPriceKobo);
+
   return (
-    <main className="container space-y-6 py-8">
+    <main className="container space-y-4 py-8">
       <SearchBar defaultValue={q} />
+
+      <SearchFilters
+        currentState={str(sp.state)}
+        currentCondition={str(sp.condition)}
+        currentSort={str(sp.sort)}
+        currentMinPrice={minKobo ? String(Number(minKobo) / 100) : undefined}
+        currentMaxPrice={maxKobo ? String(Number(maxKobo) / 100) : undefined}
+      />
+
       <p className="text-sm text-muted-foreground">
         {results.total} result{results.total === 1 ? '' : 's'}
-        {q ? ` for “${q}”` : ''}
+        {q ? ` for "${q}"` : ''}
       </p>
+
       <ListingFeed items={results.items} />
 
       {results.totalPages > 1 && (
