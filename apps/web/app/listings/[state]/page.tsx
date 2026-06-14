@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { NG_STATES } from '@lumo/shared';
 import { searchListings } from '@/lib/api';
 import { ListingFeed } from '@/components/listing-card';
 import { SearchBar } from '@/components/search-bar';
@@ -6,23 +8,15 @@ import { SITE_NAME, breadcrumbJsonLd, jsonLdScript } from '@/lib/seo';
 
 export const revalidate = 120;
 
-// Common Nigerian states for SSG.
-const NIGERIAN_STATES = [
-  'Lagos', 'Abuja', 'Kano', 'Ibadan', 'Port Harcourt', 'Benin City',
-  'Kaduna', 'Enugu', 'Onitsha', 'Warri', 'Ilorin', 'Aba', 'Jos',
-  'Maiduguri', 'Zaria', 'Owerri', 'Uyo', 'Asaba', 'Calabar', 'Abeokuta',
-  'Akure', 'Bauchi', 'Makurdi', 'Minna', 'Oshogbo', 'Sokoto',
-];
-
-export async function generateStaticParams() {
-  return NIGERIAN_STATES.map((s) => ({ state: s.toLowerCase().replace(/\s+/g, '-') }));
+function toSlug(state: string) {
+  return state.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function toDisplay(slug: string) {
-  return slug
-    .split('-')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+// Bidirectional map: slug → canonical state name
+const SLUG_TO_STATE = Object.fromEntries(NG_STATES.map((s) => [toSlug(s), s]));
+
+export async function generateStaticParams() {
+  return NG_STATES.map((s) => ({ state: toSlug(s) }));
 }
 
 export async function generateMetadata({
@@ -30,18 +24,20 @@ export async function generateMetadata({
 }: {
   params: Promise<{ state: string }>;
 }): Promise<Metadata> {
-  const { state } = await params;
-  const name = toDisplay(state);
+  const { state: slug } = await params;
+  const name = SLUG_TO_STATE[slug];
+  if (!name) return { title: 'State not found' };
   return {
     title: `Buy & Sell in ${name} — ${SITE_NAME}`,
     description: `Browse classified ads in ${name}. Find phones, cars, furniture and more from verified sellers on ${SITE_NAME}.`,
-    alternates: { canonical: `/listings/${state}` },
+    alternates: { canonical: `/listings/${slug}` },
   };
 }
 
 export default async function StatePage({ params }: { params: Promise<{ state: string }> }) {
-  const { state } = await params;
-  const name = toDisplay(state);
+  const { state: slug } = await params;
+  const name = SLUG_TO_STATE[slug];
+  if (!name) notFound();
 
   const results = await searchListings(
     new URLSearchParams({ state: name, limit: '24' }).toString(),
@@ -54,7 +50,7 @@ export default async function StatePage({ params }: { params: Promise<{ state: s
         dangerouslySetInnerHTML={jsonLdScript(
           breadcrumbJsonLd([
             { name: 'Home', url: '/' },
-            { name: name, url: `/listings/${state}` },
+            { name: name, url: `/listings/${slug}` },
           ]),
         )}
       />

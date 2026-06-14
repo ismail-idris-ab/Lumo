@@ -22,6 +22,11 @@ export async function getCategories(): Promise<CategorySummary[]> {
   return data?.categories ?? [];
 }
 
+export async function getCategoryTree(): Promise<CategorySummary[]> {
+  const data = await get<{ categories: CategorySummary[] }>('/categories?tree=true', 3600);
+  return data?.categories ?? [];
+}
+
 export async function searchListings(qs: string): Promise<Paginated<SearchListing>> {
   const data = await get<Paginated<SearchListing>>(`/search?${qs}`, 30);
   return data ?? { items: [], page: 1, limit: 20, total: 0, totalPages: 0 };

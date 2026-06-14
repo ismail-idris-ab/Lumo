@@ -1,4 +1,5 @@
 export * from './enums';
+export * from './nigeria-lgas';
 export * from './constants';
 export * from './types';
 export * from './slug';

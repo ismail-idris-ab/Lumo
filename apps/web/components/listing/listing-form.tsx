@@ -6,19 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { conditionValues, type CategorySummary, type PublicListing } from '@lumo/shared';
+import { conditionValues, NG_LGAS, NG_STATES, type CategorySummary, type PublicListing } from '@lumo/shared';
 import { api, ApiError } from '@/lib/api-client';
 import { uploadListingImage } from '@/lib/upload';
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput, FieldTextarea, inputClassName } from '@/components/ui/field';
-
-const NG_STATES = [
-  'Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno',
-  'Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT - Abuja','Gombe',
-  'Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos',
-  'Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto',
-  'Taraba','Yobe','Zamfara',
-];
 
 // Local form schema (price in naira for humans; converted to kobo on submit).
 const formSchema = z.object({
@@ -54,15 +46,18 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
   });
 
   const { data: catData } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => api.get<{ categories: CategorySummary[] }>('/categories'),
+    queryKey: ['categories-tree'],
+    queryFn: () => api.get<{ categories: CategorySummary[] }>('/categories?tree=true'),
   });
-  const categories = catData?.categories ?? [];
+  const categoryTree = catData?.categories ?? [];
+  // Flat map for lookups
+  const allCategories = categoryTree.flatMap((p) => [p, ...(p.children ?? [])]);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -80,14 +75,29 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
       : { condition: 'USED' },
   });
 
+  // Two-step category state
   const selectedCategoryId = watch('categoryId');
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  // Find which parent is selected (could be direct parent or parent of selected sub)
+  const selectedCategory = allCategories.find((c) => c.id === selectedCategoryId);
+  const selectedParent = selectedCategory?.parentId
+    ? categoryTree.find((p) => p.id === selectedCategory.parentId)
+    : categoryTree.find((p) => p.id === selectedCategoryId);
+  const subcategories = selectedParent?.children ?? [];
   const attrSchema = selectedCategory?.attributeSchema as AttributeField[] | null | undefined;
+
+  // LGA list driven by selected state
+  const selectedState = watch('state');
+  const lgas = selectedState ? (NG_LGAS[selectedState] ?? []) : [];
 
   // Clear attribute values when category changes (only in create mode).
   useEffect(() => {
     if (!editing) setAttrValues({});
   }, [selectedCategoryId, editing]);
+
+  // Reset city when state changes (only in create mode).
+  useEffect(() => {
+    if (!editing) setValue('city', '');
+  }, [selectedState, editing, setValue]);
 
   async function onSubmit(values: FormValues) {
     setError(null);
@@ -152,15 +162,41 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
         </Field>
       </div>
       <Field label="Category" error={errors.categoryId?.message}>
-        <select className={inputClassName} {...register('categoryId')}>
+        <select
+          className={inputClassName}
+          value={selectedParent?.id ?? (selectedCategory?.parentId ? '' : (selectedCategoryId ?? ''))}
+          onChange={(e) => {
+            const parentId = e.target.value;
+            const parent = categoryTree.find((p) => p.id === parentId);
+            if (parent && (parent.children ?? []).length === 0) {
+              // No subcategories — set directly
+              setValue('categoryId', parentId, { shouldValidate: true });
+            } else {
+              // Has subcategories — clear categoryId until sub is picked
+              setValue('categoryId', '', { shouldValidate: false });
+            }
+          }}
+        >
           <option value="">Select a category…</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+          {categoryTree.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
       </Field>
+      {subcategories.length > 0 && (
+        <Field label="Subcategory" error={selectedParent && !selectedCategoryId ? 'Choose a subcategory' : undefined}>
+          <select
+            className={inputClassName}
+            value={selectedCategory?.parentId ? selectedCategoryId : ''}
+            onChange={(e) => setValue('categoryId', e.target.value, { shouldValidate: true })}
+          >
+            <option value="">Select a subcategory…</option>
+            {subcategories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       {/* Dynamic attribute fields — rendered when selected category has a schema */}
       {attrSchema && attrSchema.length > 0 && (
@@ -194,7 +230,20 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
           </select>
         </Field>
         <Field label="City / LGA" error={errors.city?.message}>
-          <FieldInput {...register('city')} placeholder="Ikeja" />
+          {lgas.length > 0 ? (
+            <select className={inputClassName} {...register('city')}>
+              <option value="">Select LGA…</option>
+              {lgas.map((lga) => (
+                <option key={lga} value={lga}>{lga}</option>
+              ))}
+            </select>
+          ) : (
+            <FieldInput
+              {...register('city')}
+              placeholder={selectedState ? 'Enter city' : 'Select state first'}
+              disabled={!selectedState}
+            />
+          )}
         </Field>
         <Field label="Area (optional)" error={errors.area?.message}>
           <FieldInput {...register('area')} />

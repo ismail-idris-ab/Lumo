@@ -84,13 +84,15 @@ export function ListingCard({ item }: { item: SearchListing }) {
             {item.condition === 'NEW' ? 'New' : item.condition === 'USED' ? 'Used' : 'For parts'}
           </span>
           {item.sellerId && (
-            <a
-              href={`/seller/${item.sellerId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="truncate text-xs text-slate-400 hover:text-emerald-700 hover:underline"
+            <span
+              role="link"
+              tabIndex={0}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/seller/${item.sellerId}`; }}
+              onKeyDown={(e) => { if (e.key === 'Enter') window.location.href = `/seller/${item.sellerId}`; }}
+              className="truncate text-xs text-slate-400 hover:text-emerald-700 hover:underline cursor-pointer"
             >
               {item.sellerName}
-            </a>
+            </span>
           )}
         </div>
       </div>
@@ -128,13 +130,15 @@ function ListingRow({ item }: { item: SearchListing }) {
             {item.condition === 'NEW' ? 'New' : item.condition === 'USED' ? 'Used' : 'For parts'}
           </span>
           {item.sellerId && (
-            <a
-              href={`/seller/${item.sellerId}`}
-              onClick={(e) => e.stopPropagation()}
-              className="truncate text-xs text-slate-400 hover:text-emerald-700 hover:underline"
+            <span
+              role="link"
+              tabIndex={0}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/seller/${item.sellerId}`; }}
+              onKeyDown={(e) => { if (e.key === 'Enter') window.location.href = `/seller/${item.sellerId}`; }}
+              className="truncate text-xs text-slate-400 hover:text-emerald-700 hover:underline cursor-pointer"
             >
               {item.sellerName}
-            </a>
+            </span>
           )}
         </div>
       </div>
