@@ -33,6 +33,8 @@ export interface ListingDoc {
   createdAt: number;
   primaryImage: string | null;
   status: ListingStatus;
+  sellerId: string;
+  sellerName: string;
   sellerVerified: boolean;
   sellerRating: number | null;
   sellerYears: number;
@@ -73,6 +75,8 @@ export function buildListingDoc(l: HydratedListing): ListingDoc {
     createdAt: l.createdAt.getTime(),
     primaryImage: primary?.url ?? null,
     status: l.status,
+    sellerId: l.owner.id,
+    sellerName: l.owner.name,
     sellerVerified: l.owner.sellerProfile?.verification === 'VERIFIED',
     sellerRating: l.owner.sellerProfile?.ratingAvg && l.owner.sellerProfile.ratingAvg > 0
       ? l.owner.sellerProfile.ratingAvg

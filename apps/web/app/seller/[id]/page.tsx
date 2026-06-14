@@ -61,6 +61,8 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
     promotionTier: l.promotionTier,
     primaryImage: l.images.find((i) => i.isPrimary)?.url ?? l.images[0]?.url ?? null,
     createdAt: l.createdAt,
+    sellerId: seller!.id,
+    sellerName: seller!.name,
     sellerVerified: seller!.verification === 'VERIFIED',
     sellerRating: seller!.ratingAvg,
     sellerYears,

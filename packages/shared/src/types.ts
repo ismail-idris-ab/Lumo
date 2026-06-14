@@ -172,6 +172,8 @@ export interface SearchListing {
   promotionTier: PromotionTier;
   primaryImage: string | null;
   createdAt: string; // ISO
+  sellerId: string;
+  sellerName: string;
   sellerVerified: boolean;
   sellerRating: number | null;
   sellerYears: number;

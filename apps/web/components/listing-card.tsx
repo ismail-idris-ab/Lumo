@@ -79,10 +79,19 @@ export function ListingCard({ item }: { item: SearchListing }) {
         <p className="flex items-center gap-1 text-xs text-slate-500">
           📍 {locationLabel(item.state, item.city, item.area)}
         </p>
-        <div className="mt-1 flex flex-wrap gap-1">
+        <div className="mt-1 flex items-center justify-between gap-1">
           <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
             {item.condition === 'NEW' ? 'New' : item.condition === 'USED' ? 'Used' : 'For parts'}
           </span>
+          {item.sellerId && (
+            <a
+              href={`/seller/${item.sellerId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="truncate text-xs text-slate-400 hover:text-emerald-700 hover:underline"
+            >
+              {item.sellerName}
+            </a>
+          )}
         </div>
       </div>
     </Link>
@@ -114,9 +123,20 @@ function ListingRow({ item }: { item: SearchListing }) {
         <p className="flex items-center gap-1 text-xs text-slate-500">
           📍 {locationLabel(item.state, item.city, item.area)}
         </p>
-        <span className="mt-1 w-fit rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-          {item.condition === 'NEW' ? 'New' : item.condition === 'USED' ? 'Used' : 'For parts'}
-        </span>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <span className="w-fit rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+            {item.condition === 'NEW' ? 'New' : item.condition === 'USED' ? 'Used' : 'For parts'}
+          </span>
+          {item.sellerId && (
+            <a
+              href={`/seller/${item.sellerId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="truncate text-xs text-slate-400 hover:text-emerald-700 hover:underline"
+            >
+              {item.sellerName}
+            </a>
+          )}
+        </div>
       </div>
     </Link>
   );
