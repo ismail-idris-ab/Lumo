@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getListing, getSellerReviews, getSimilarListings } from '@/lib/api';
 import { ListingFeed } from '@/components/listing-card';
 import { formatNaira, locationLabel } from '@/lib/format';
+import type { AttributeFieldDef } from '@lumo/shared';
 import { AttributeGrid } from '@/components/listing/attribute-grid';
+import { ListingGallery } from '@/components/listing/listing-gallery';
 import { ReviewSection } from '@/components/listing/review-section';
 import { SellerSidebar } from '@/components/listing/seller-sidebar';
 import { breadcrumbJsonLd, jsonLdScript, productJsonLd } from '@/lib/seo';
@@ -55,10 +56,8 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
     listing.id,
   );
 
-  const primary = listing.images.find((i) => i.isPrimary) ?? listing.images[0];
-
   const attributeSchema = listing.category?.attributeSchema as
-    | { key: string; label: string; primary?: boolean; format?: string }[]
+    | AttributeFieldDef[]
     | null
     | undefined;
 
@@ -85,49 +84,26 @@ export default async function ListingPage({ params }: { params: Promise<{ slug: 
         {/* ── LEFT COLUMN ── */}
         <div className="space-y-4">
           {/* Gallery */}
-          <div className="space-y-2">
-            <div className="relative h-[380px] overflow-hidden rounded-xl bg-muted md:h-[440px]">
-              {primary ? (
-                <Image
-                  src={primary.url}
-                  alt={listing.title}
-                  fill
-                  sizes="(max-width:1024px) 100vw, 65vw"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground">
-                  No image
-                </div>
-              )}
-              {listing.isPromoted && (
-                <span className="absolute left-3 top-3 rounded-md bg-emerald-600 px-2 py-1 text-xs font-bold text-white">
-                  Promoted
-                </span>
-              )}
-              <span className="absolute bottom-3 left-3 rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white">
-                📷 1/{listing.images.length || 1}
-              </span>
-            </div>
-            {listing.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {listing.images.map((img) => (
-                  <div key={img.id} className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    <Image src={img.url} alt={listing.title} fill sizes="80px" className="object-cover" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ListingGallery
+            images={listing.images}
+            title={listing.title}
+            isPromoted={listing.isPromoted}
+          />
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
             <span>📍 {locationLabel(listing.state, listing.city, listing.area)}</span>
             <span>🕐 {new Date(listing.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-            <span className="ml-auto">👁 {listing.viewsCount} views</span>
+            <span className="ml-auto flex items-center gap-2">
+              <span>👁 {listing.viewsCount} views</span>
+              {listing.todayViews >= 3 && (
+                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600">
+                  🔥 {listing.todayViews} today
+                </span>
+              )}
+            </span>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(`${listing.title} — ${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://lumo.ng'}/listing/${listing.slug}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(`${listing.title} — ${formatNaira(listing.priceKobo)}\nSeller: ${listing.seller?.name ?? ''}\n${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://lumo.ng'}/listing/${listing.slug}`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1 text-xs font-semibold text-white hover:opacity-90"

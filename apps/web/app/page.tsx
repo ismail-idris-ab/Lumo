@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getCategoryTree, searchListings } from '@/lib/api';
 import { SearchBar } from '@/components/search-bar';
-import { ListingFeed } from '@/components/listing-card';
+import { HomeFeed } from '@/components/home-feed';
 
 // ISR: home revalidates periodically.
 export const revalidate = 60;
@@ -59,7 +59,7 @@ export default async function HomePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Latest listings</h2>
-        <ListingFeed items={results.items} />
+        <HomeFeed initial={results.items} totalPages={results.totalPages} />
       </section>
     </main>
   );

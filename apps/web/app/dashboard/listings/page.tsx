@@ -29,8 +29,14 @@ export default function MyListingsPage() {
     queryFn: () => api.get<{ listings: PublicListing[] }>('/listings/mine'),
   });
   const invalidate = () => qc.invalidateQueries({ queryKey: ['my-listings'] });
-  const del = useMutation({ mutationFn: (id: string) => api.delete(`/listings/${id}`), onSuccess: invalidate });
-  const sold = useMutation({ mutationFn: (id: string) => api.post(`/listings/${id}/sold`), onSuccess: invalidate });
+  const del = useMutation({
+    mutationFn: (id: string) => api.delete(`/listings/${id}`),
+    onSuccess: invalidate,
+  });
+  const sold = useMutation({
+    mutationFn: (id: string) => api.post(`/listings/${id}/sold`),
+    onSuccess: invalidate,
+  });
 
   const listings = data?.listings ?? [];
 
@@ -53,15 +59,37 @@ export default function MyListingsPage() {
             <li key={l.id} className="flex gap-3 rounded-lg border p-3">
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded bg-muted">
                 {l.images[0] ? (
-                  <Image src={l.images[0].url} alt={l.title} fill sizes="80px" className="object-cover" />
+                  <Image
+                    src={l.images[0].url}
+                    alt={l.title}
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
                 ) : null}
               </div>
               <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={cn('rounded px-1.5 py-0.5 text-xs font-medium', STATUS_STYLE[l.status])}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      'rounded px-1.5 py-0.5 text-xs font-medium',
+                      STATUS_STYLE[l.status],
+                    )}
+                  >
                     {l.status}
                   </span>
                   <span className="text-xs text-muted-foreground">{l.viewsCount} views</span>
+                  {l.status === 'APPROVED' &&
+                    (() => {
+                      const ageDays = Math.floor(
+                        (Date.now() - new Date(l.createdAt).getTime()) / 86400000,
+                      );
+                      return ageDays >= 15 ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                          {ageDays}d old — still active?
+                        </span>
+                      ) : null;
+                    })()}
                 </div>
                 <p className="truncate font-medium">{l.title}</p>
                 <p className="text-sm text-primary">{formatNaira(l.priceKobo)}</p>
@@ -79,7 +107,12 @@ export default function MyListingsPage() {
                   </Button>
                 )}
                 {(l.status === 'APPROVED' || l.status === 'PENDING') && (
-                  <Button variant="secondary" size="sm" disabled={sold.isPending} onClick={() => sold.mutate(l.id)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={sold.isPending}
+                    onClick={() => sold.mutate(l.id)}
+                  >
                     Mark sold
                   </Button>
                 )}

@@ -20,6 +20,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
+    "require-in-the-middle": "^8.0.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.5.5",
     "zod": "^3.23.8"
