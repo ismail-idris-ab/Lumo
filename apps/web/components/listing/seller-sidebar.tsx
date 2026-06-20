@@ -12,6 +12,12 @@ interface Props {
   reviewTotal: number;
 }
 
+function formatReplyTime(hours: number): string {
+  if (hours < 1) return '< 1h';
+  if (hours < 24) return `~${Math.round(hours)}h`;
+  return `~${Math.round(hours / 24)}d`;
+}
+
 export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props) {
   const seller = listing.seller;
 
@@ -45,6 +51,7 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
             listingId={listing.id}
             slug={listing.slug}
             sellerId={seller.id}
+            createdAt={listing.createdAt}
           />
         </div>
       )}
@@ -69,6 +76,11 @@ export function SellerSidebar({ listing, reviews: _reviews, reviewTotal }: Props
                 {seller.verification === 'VERIFIED' && (
                   <span className="rounded-full bg-sky-50 px-2 py-0.5 text-sky-700">
                     ✔ Verified ID
+                  </span>
+                )}
+                {seller.avgReplyHours != null && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
+                    ⚡ Replies {formatReplyTime(seller.avgReplyHours)}
                   </span>
                 )}
                 {seller.ratingAvg != null && seller.ratingAvg > 0 && (

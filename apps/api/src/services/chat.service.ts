@@ -126,5 +126,49 @@ export async function sendMessage(
   const { body } = sendMessageSchema.parse(input);
   const message = await prisma.message.create({ data: { chatId, senderId: userId, body } });
   const recipientId = chat.buyerId === userId ? chat.sellerId : chat.buyerId;
+
+  // Fire-and-forget: track seller's first reply time for response rate metric.
+  if (userId === chat.sellerId) {
+    void updateSellerReplyRate(chat.sellerId, chat.buyerId, chatId, message.createdAt).catch(() => {});
+  }
+
   return { message: toMessageDTO(message), recipientId };
+}
+
+async function updateSellerReplyRate(
+  sellerId: string,
+  buyerId: string,
+  chatId: string,
+  repliedAt: Date,
+): Promise<void> {
+  const [firstSellerMsg, firstBuyerMsg] = await Promise.all([
+    prisma.message.findFirst({
+      where: { chatId, senderId: sellerId },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    }),
+    prisma.message.findFirst({
+      where: { chatId, senderId: buyerId },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    }),
+  ]);
+  // Only count if this is the seller's first reply and buyer messaged first.
+  if (!firstSellerMsg || !firstBuyerMsg) return;
+  if (firstSellerMsg.createdAt.getTime() !== repliedAt.getTime()) return;
+  if (firstBuyerMsg.createdAt >= repliedAt) return;
+
+  const replyHours = (repliedAt.getTime() - firstBuyerMsg.createdAt.getTime()) / 3600000;
+  const profile = await prisma.sellerProfile.findUnique({
+    where: { userId: sellerId },
+    select: { avgReplyHours: true },
+  });
+  const newAvg =
+    profile?.avgReplyHours != null
+      ? profile.avgReplyHours * 0.7 + replyHours * 0.3
+      : replyHours;
+  await prisma.sellerProfile.update({
+    where: { userId: sellerId },
+    data: { avgReplyHours: newAvg },
+  });
 }
