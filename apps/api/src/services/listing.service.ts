@@ -14,7 +14,11 @@ import {
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { enqueueListingSync } from '../lib/queue';
+import { getRedis } from '../lib/redis';
 import { assertOwnership } from '../middleware/rbac';
+import { notify } from '../lib/notify';
+import { sendEmail } from '../lib/email';
+import { formatKobo } from '../lib/format';
 
 type Principal = { id: string; roles: Role[] };
 
@@ -33,14 +37,14 @@ export const listingInclude = {
       name: true,
       avatarUrl: true,
       createdAt: true,
-      sellerProfile: { select: { verification: true, ratingAvg: true, ratingCount: true } },
+      sellerProfile: { select: { verification: true, ratingAvg: true, ratingCount: true, avgReplyHours: true } },
     },
   },
 } satisfies Prisma.ListingInclude;
 
 export type HydratedListing = Prisma.ListingGetPayload<{ include: typeof listingInclude }>;
 
-export function toPublicListing(l: HydratedListing): PublicListing {
+export function toPublicListing(l: HydratedListing, todayViews = 0): PublicListing {
   return {
     id: l.id,
     slug: l.slug,
@@ -57,6 +61,7 @@ export function toPublicListing(l: HydratedListing): PublicListing {
     promotedUntil: l.promotedUntil?.toISOString() ?? null,
     expiresAt: l.expiresAt.toISOString(),
     viewsCount: l.viewsCount,
+    todayViews,
     createdAt: l.createdAt.toISOString(),
     images: l.images.map((i) => ({
       id: i.id,
@@ -69,7 +74,7 @@ export function toPublicListing(l: HydratedListing): PublicListing {
       id: l.category.id,
       name: l.category.name,
       slug: l.category.slug,
-      attributeSchema: l.category.attributeSchema,
+      attributeSchema: l.category.attributeSchema as import('@lumo/shared').AttributeFieldDef[] | null,
     },
     seller: {
       id: l.owner.id,
@@ -79,6 +84,7 @@ export function toPublicListing(l: HydratedListing): PublicListing {
       verification: l.owner.sellerProfile?.verification ?? null,
       ratingAvg: l.owner.sellerProfile?.ratingAvg ?? null,
       ratingCount: l.owner.sellerProfile?.ratingCount ?? 0,
+      avgReplyHours: l.owner.sellerProfile?.avgReplyHours ?? null,
     },
     promotionTier: (l.promotionTier ?? 'NONE') as import('@lumo/shared').PromotionTier,
     attributes: l.attributes as Record<string, unknown> | null,
@@ -127,6 +133,7 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
       state: data.state,
       city: data.city,
       area: data.area ?? null,
+      contactPhone: data.contactPhone ?? null,
       categoryId: data.categoryId,
       ownerId,
       expiresAt: ttlExpiry(),
@@ -194,7 +201,17 @@ export async function getListingBySlug(slug: string): Promise<PublicListing> {
   }
 
   await prisma.listing.update({ where: { id: listing.id }, data: { viewsCount: { increment: 1 } } });
-  return toPublicListing({ ...listing, viewsCount: listing.viewsCount + 1 });
+
+  let todayViews = 0;
+  try {
+    const redis = getRedis();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const key = `listing:views:daily:${listing.id}:${dateStr}`;
+    todayViews = await redis.incr(key);
+    if (todayViews === 1) await redis.expire(key, 172800); // 48h TTL
+  } catch { /* fail-open — Redis unavailability never blocks a listing view */ }
+
+  return toPublicListing({ ...listing, viewsCount: listing.viewsCount + 1 }, todayViews);
 }
 
 export async function listMyListings(ownerId: string): Promise<PublicListing[]> {
@@ -242,6 +259,12 @@ export async function updateListing(
   });
   // Edit re-pends (or no-op) → drop from search until re-approved.
   if (hasChanges) await enqueueListingSync(id);
+
+  // Notify price watchers when price drops.
+  if (data.priceKobo !== undefined && data.priceKobo < existing.priceKobo) {
+    void notifyPriceWatchers(id, listing.title, listing.slug, existing.priceKobo, data.priceKobo);
+  }
+
   return toPublicListing(listing);
 }
 
@@ -268,6 +291,7 @@ export async function revealContact(
       status: true,
       deletedAt: true,
       expiresAt: true,
+      contactPhone: true,
       owner: { select: { id: true, name: true, phone: true } },
     },
   });
@@ -280,7 +304,49 @@ export async function revealContact(
       .upsert({ where: { userId_listingId: { userId, listingId } }, create: { userId, listingId }, update: {} })
       .catch(() => undefined);
   }
-  return { sellerId: listing.owner.id, sellerName: listing.owner.name, phone: listing.owner.phone };
+  return { sellerId: listing.owner.id, sellerName: listing.owner.name, phone: listing.contactPhone ?? listing.owner.phone };
+}
+
+async function notifyPriceWatchers(
+  listingId: string,
+  title: string,
+  slug: string,
+  oldPriceKobo: number,
+  newPriceKobo: number,
+): Promise<void> {
+  const watchers = await prisma.priceWatch.findMany({
+    where: { listingId },
+    include: { user: { select: { email: true } } },
+  });
+  if (watchers.length === 0) return;
+
+  type WatcherWithUser = (typeof watchers)[0];
+  const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3000';
+  await Promise.allSettled(
+    watchers.map(async (w: WatcherWithUser) => {
+      await notify(w.userId, 'PRICE_DROP', {
+        listingId,
+        listingSlug: slug,
+        listingTitle: title,
+        oldPriceKobo,
+        newPriceKobo,
+      });
+      void sendEmail(
+        w.user.email,
+        `Price dropped: ${title}`,
+        `<p>A listing you're watching just dropped in price:</p>
+         <p><strong>${title}</strong><br>
+         Was: <del>${formatKobo(oldPriceKobo)}</del> → Now: <strong>${formatKobo(newPriceKobo)}</strong></p>
+         <p><a href="${webUrl}/listing/${slug}">View listing</a></p>`,
+      );
+    }),
+  );
+
+  // Update stored price so next drop is relative to latest.
+  await prisma.priceWatch.updateMany({
+    where: { listingId },
+    data: { priceKobo: newPriceKobo },
+  });
 }
 
 export async function markListingSold(id: string, actor: Principal): Promise<PublicListing> {

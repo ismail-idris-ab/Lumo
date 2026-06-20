@@ -2,12 +2,14 @@ import { prisma } from '../lib/prisma';
 
 const SUBCATEGORIES: Record<string, { name: string; slug: string; order: number }[]> = {
   'phones-tablets': [
-    { name: 'Smartphones', slug: 'smartphones', order: 1 },
-    { name: 'iPhones', slug: 'iphones', order: 2 },
-    { name: 'Tablets', slug: 'tablets', order: 3 },
-    { name: 'iPads', slug: 'ipads', order: 4 },
-    { name: 'Feature Phones', slug: 'feature-phones', order: 5 },
-    { name: 'Phone Accessories', slug: 'phone-accessories', order: 6 },
+    // reuse 'smartphones' slug so existing listings keep their categoryId
+    { name: 'Mobile Phones', slug: 'smartphones', order: 1 },
+    { name: 'Tablets', slug: 'tablets', order: 2 },
+    // reuse 'phone-accessories' slug
+    { name: 'Accessories for Phones & Tablets', slug: 'phone-accessories', order: 3 },
+    { name: 'Smart Watches & Wearables', slug: 'smart-watches-wearables', order: 4 },
+    { name: 'Phone Parts & Components', slug: 'phone-parts-components', order: 5 },
+    { name: 'Phone & Tablet Repair & Services', slug: 'phone-tablet-repair', order: 6 },
   ],
   'electronics': [
     { name: 'Laptops & Computers', slug: 'laptops-computers', order: 1 },
@@ -41,7 +43,20 @@ const SUBCATEGORIES: Record<string, { name: string; slug: string; order: number 
   ],
 };
 
+// Obsolete phone subcategory slugs merged into Mobile Phones / Tablets above.
+const OBSOLETE_SLUGS = ['iphones', 'ipads', 'feature-phones'];
+
 async function main() {
+  // Remove stale subcategories (safe when no listings reference them; skip if FK error).
+  for (const slug of OBSOLETE_SLUGS) {
+    try {
+      await prisma.category.delete({ where: { slug } });
+      console.log(`  deleted obsolete: ${slug}`);
+    } catch {
+      console.warn(`  skipped delete (in use or missing): ${slug}`);
+    }
+  }
+
   let total = 0;
   for (const [parentSlug, children] of Object.entries(SUBCATEGORIES)) {
     const parent = await prisma.category.findUnique({ where: { slug: parentSlug } });

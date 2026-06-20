@@ -21,7 +21,9 @@
     "expiry:run": "tsx src/scripts/run-expiry.ts",
     "search:setup": "tsx src/scripts/search-setup.ts",
     "search:reindex": "tsx src/scripts/search-reindex.ts",
-    "payments:reconcile": "tsx src/scripts/run-reconcile.ts"
+    "payments:reconcile": "tsx src/scripts/run-reconcile.ts",
+    "seed:phone": "tsx src/scripts/seed-phone-schema.ts",
+    "seed:schemas": "tsx src/scripts/seed-all-schemas.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

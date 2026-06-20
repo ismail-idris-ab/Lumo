@@ -1,22 +1,19 @@
 'use client';
 import { useState } from 'react';
+import type { AttributeFieldDef } from '@lumo/shared';
 
-export interface AttributeField {
-  key: string;
-  label: string;
-  primary?: boolean;
-  format?: string;
-}
-
-function formatValue(raw: unknown, fmt?: string): string {
+function formatValue(field: AttributeFieldDef, raw: unknown): string {
   if (raw == null) return '';
-  const str = String(raw);
-  if (!fmt) return str;
-  return fmt.replace('{v}', str);
+  if (Array.isArray(raw)) return raw.join(', ');
+  const s = String(raw);
+  if (field.type === 'boolean') return s === 'true' ? 'Yes' : 'No';
+  if (field.unit) return `${s} ${field.unit}`;
+  if (field.format) return field.format.replace('{v}', s);
+  return s;
 }
 
 interface Props {
-  schema: AttributeField[];
+  schema: AttributeFieldDef[];
   attributes: Record<string, unknown>;
 }
 
@@ -36,7 +33,7 @@ export function AttributeGrid({ schema, attributes }: Props) {
         {shown.map((f) => (
           <div key={f.key}>
             <p className="text-sm font-semibold text-slate-800">
-              {formatValue(attributes[f.key], f.format)}
+              {formatValue(f, attributes[f.key])}
             </p>
             <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-400">{f.label}</p>
           </div>
