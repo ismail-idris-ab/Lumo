@@ -27,6 +27,9 @@ export interface PublicUser {
   emailVerified: boolean;
   phoneVerified: boolean;
   avatarUrl: string | null;
+  bio: string | null;
+  state: string | null;
+  city: string | null;
   createdAt: string; // ISO
 }
 
@@ -50,7 +53,7 @@ export interface CategorySummary {
   slug: string;
   parentId?: string | null;
   order?: number;
-  attributeSchema: unknown | null;
+  attributeSchema: AttributeFieldDef[] | null;
   children?: CategorySummary[];
 }
 
@@ -62,6 +65,7 @@ export interface SellerSummary {
   verification: VerificationStatus | null;
   ratingAvg: number | null;
   ratingCount: number;
+  avgReplyHours: number | null;
 }
 
 export interface PublicListing {
@@ -81,6 +85,7 @@ export interface PublicListing {
   promotedUntil: string | null;
   expiresAt: string; // ISO
   viewsCount: number;
+  todayViews: number;
   createdAt: string; // ISO
   images: ListingImageDTO[];
   attributes: Record<string, unknown> | null;
@@ -152,12 +157,58 @@ export interface SellerPublicProfile {
   id: string;
   name: string;
   avatarUrl: string | null;
+  bio: string | null;
+  state: string | null;
+  city: string | null;
+  lastActiveAt: string | null;
   createdAt: string;
   verification: VerificationStatus | null;
   ratingAvg: number | null;
   ratingCount: number;
+  avgReplyHours: number | null;
   listingCount: number;
 }
+
+export interface SavedSearchDTO {
+  id: string;
+  name: string | null;
+  query: string | null;
+  categoryId: string | null;
+  state: string | null;
+  minPriceKobo: number | null;
+  maxPriceKobo: number | null;
+  condition: Condition | null;
+  createdAt: string;
+}
+
+export interface PriceWatchDTO {
+  watching: boolean;
+  priceKobo?: number;
+}
+
+// ─── Attribute field schema ───────────────────────────────────────────────────
+
+export type AttributeFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  | 'multiselect'
+  | 'boolean';
+
+export interface AttributeFieldDef {
+  key: string;
+  label: string;
+  type: AttributeFieldType;
+  required?: boolean;
+  primary?: boolean;
+  format?: string;
+  unit?: string;
+  placeholder?: string;
+  options?: string[];
+}
+
+// ─── Search listing ───────────────────────────────────────────────────────────
 
 // Lightweight search result card (same shape from Meili or the Postgres fallback).
 export interface SearchListing {

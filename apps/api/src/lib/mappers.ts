@@ -2,7 +2,7 @@ import type { User } from '@prisma/client';
 import type { PublicUser } from '@lumo/shared';
 
 // Strip sensitive fields (passwordHash, deletedAt) → public-safe user DTO.
-export function toPublicUser(u: User): PublicUser {
+export function toPublicUser(u: User, bio?: string | null): PublicUser {
   return {
     id: u.id,
     email: u.email,
@@ -12,6 +12,9 @@ export function toPublicUser(u: User): PublicUser {
     emailVerified: u.emailVerified,
     phoneVerified: u.phoneVerified,
     avatarUrl: u.avatarUrl,
+    bio: bio ?? null,
+    state: u.state ?? null,
+    city: u.city ?? null,
     createdAt: u.createdAt.toISOString(),
   };
 }

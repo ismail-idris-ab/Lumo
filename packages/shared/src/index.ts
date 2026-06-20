@@ -13,3 +13,5 @@ export * from './schemas/report';
 export * from './schemas/verification';
 export * from './schemas/payment';
 export * from './schemas/analytics';
+export * from './schemas/profile';
+export * from './schemas/saved-search';

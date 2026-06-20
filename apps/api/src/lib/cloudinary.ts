@@ -53,6 +53,25 @@ export function createUploadSignature(listingId: string): UploadSignature {
   };
 }
 
+export const AVATAR_FOLDER_PREFIX = 'lumo/avatars';
+
+export function createAvatarUploadSignature(userId: string): UploadSignature {
+  ensureConfigured();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = `${AVATAR_FOLDER_PREFIX}/${userId}`;
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder },
+    config.CLOUDINARY_API_SECRET!,
+  );
+  return {
+    cloudName: config.CLOUDINARY_CLOUD_NAME!,
+    apiKey: config.CLOUDINARY_API_KEY!,
+    timestamp,
+    folder,
+    signature,
+  };
+}
+
 export async function destroyAsset(publicId: string): Promise<void> {
   ensureConfigured();
   await cloudinary.uploader.destroy(publicId);
