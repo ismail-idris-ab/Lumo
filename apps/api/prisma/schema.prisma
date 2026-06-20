@@ -86,6 +86,9 @@ model User {
   emailVerified Boolean   @default(false)
   phoneVerified Boolean   @default(false)
   avatarUrl     String?
+  state         String?
+  city          String?
+  lastActiveAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -105,6 +108,8 @@ model User {
   reviewsWritten  Review[]             @relation("ReviewsWritten")
   verificationRequests VerificationRequest[]
   contactReveals  ContactReveal[]
+  savedSearches   SavedSearch[]
+  priceWatches    PriceWatch[]
 }
 
 // Seller verification submission (TRD §22 — docs in a private bucket). Fee gating in Phase 5.
@@ -158,6 +163,7 @@ model SellerProfile {
   ratingCount   Int                @default(0)
   isFeatured    Boolean            @default(false)
   featuredUntil DateTime?
+  avgReplyHours Float?
 }
 
 model Category {
@@ -193,17 +199,20 @@ model Listing {
   reports       Report[]
   contactReveals ContactReveal[]
   reviews       Review[]
+  priceWatches  PriceWatch[]
   isPromoted    Boolean        @default(false)
   promotedUntil DateTime?
   promotionTier   PromotionTier  @default(NONE)
   attributes      Json?
+  contactPhone    String?
   marketLowKobo   Int?
   marketHighKobo  Int?
-  expiresAt     DateTime
-  viewsCount    Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
+  expiresAt              DateTime
+  viewsCount             Int       @default(0)
+  lastFreshnessNudgeAt   DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
 
   @@index([status, categoryId, state, city])
   @@index([status, isPromoted, createdAt])
@@ -376,4 +385,34 @@ model AuditLog {
 
   @@index([targetType, targetId])
   @@index([actorId])
+}
+
+model SavedSearch {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String?
+  query         String?
+  categoryId    String?
+  state         String?
+  minPriceKobo  Int?
+  maxPriceKobo  Int?
+  condition     Condition?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model PriceWatch {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  priceKobo   Int
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([listingId])
 }
