@@ -9,6 +9,7 @@ export const JOB_NAMES = {
   syncListing: 'sync-listing',
   reindexAll: 'reindex-all',
   computeMarketPrice: 'compute-market-price',
+  checkSavedSearches: 'check-saved-searches',
 } as const;
 
 // How often the expiry sweep runs (TRD §15: ~every 10 min).
@@ -25,5 +26,9 @@ export const PAYMENT_STALE_MS = 10 * 60 * 1000;
 export const MARKET_PRICE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 export interface SyncListingJob {
+  listingId: string;
+}
+
+export interface CheckSavedSearchesJob {
   listingId: string;
 }

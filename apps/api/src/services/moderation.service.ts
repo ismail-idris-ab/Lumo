@@ -8,11 +8,13 @@ import {
   type PublicListing,
 } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
+import { logger } from '../lib/logger';
 import { AppError } from '../lib/errors';
 import { writeAudit, type Actor } from '../lib/audit';
 import { notify } from '../lib/notify';
 import { emailUser } from '../lib/email';
-import { enqueueListingSync } from '../lib/queue';
+import { enqueueListingSync, enqueueCheckSavedSearches } from '../lib/queue';
+import { syncListingDoc } from './search-sync';
 import { listingInclude, toPublicListing } from './listing.service';
 
 const DAY_MS = 86_400_000;
@@ -79,6 +81,7 @@ async function applyModeration(
     ip: actor.ip,
   });
   await enqueueListingSync(id); // worker upserts (if APPROVED) or removes
+  void syncListingDoc(id).catch((err) => logger.warn({ err }, 'Direct search sync failed'));
   return toPublicListing(listing);
 }
 
@@ -95,6 +98,7 @@ export async function approveListing(id: string, actor: Actor): Promise<PublicLi
     'Your Lumo listing is now live',
     `<p>Good news — “${listing.title}” has been approved and is now visible on Lumo.</p>`,
   );
+  void enqueueCheckSavedSearches(id);
   return listing;
 }
 

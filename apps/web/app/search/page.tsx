@@ -6,6 +6,7 @@ import { SearchBar } from '@/components/search-bar';
 import { SearchFilters } from '@/components/search-filters';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { SaveSearchButton } from '@/components/save-search-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,10 +59,22 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         currentMaxPrice={maxKobo ? String(Number(maxKobo) / 100) : undefined}
       />
 
-      <p className="text-sm text-muted-foreground">
-        {results.total} result{results.total === 1 ? '' : 's'}
-        {q ? ` for "${q}"` : ''}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-muted-foreground">
+          {results.total} result{results.total === 1 ? '' : 's'}
+          {q ? ` for "${q}"` : ''}
+        </p>
+        <SaveSearchButton
+          searchParams={{
+            q: str(sp.q),
+            categoryId: str(sp.categoryId),
+            state: str(sp.state),
+            condition: str(sp.condition),
+            minPriceKobo: str(sp.minPriceKobo),
+            maxPriceKobo: str(sp.maxPriceKobo),
+          }}
+        />
+      </div>
 
       <ListingFeed items={results.items} />
 

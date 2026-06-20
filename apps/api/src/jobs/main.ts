@@ -9,6 +9,7 @@ import { runExpirySweep } from '../services/expiry.service';
 import { reconcilePendingPayments } from '../services/payment.service';
 import { reindexAllApproved, syncListingDoc } from '../services/search-sync';
 import { computeMarketPrices } from '../services/market-price.service';
+import { checkSavedSearches } from './check-saved-searches';
 import {
   EXPIRY_SWEEP_INTERVAL_MS,
   JOB_NAMES,
@@ -17,6 +18,7 @@ import {
   REINDEX_INTERVAL_MS,
   MARKET_PRICE_INTERVAL_MS,
   type SyncListingJob,
+  type CheckSavedSearchesJob,
 } from './queues';
 
 // Worker process entrypoint: `pnpm --filter @lumo/api worker`.
@@ -48,6 +50,8 @@ async function main() {
       if (job.name === JOB_NAMES.expirySweep) return runExpirySweep();
       if (job.name === JOB_NAMES.reconcilePayments) return reconcilePendingPayments();
       if (job.name === JOB_NAMES.computeMarketPrice) return computeMarketPrices();
+      if (job.name === JOB_NAMES.checkSavedSearches)
+        return checkSavedSearches((job.data as CheckSavedSearchesJob).listingId);
       logger.warn({ job: job.name }, 'Unknown maintenance job');
     },
     { connection },

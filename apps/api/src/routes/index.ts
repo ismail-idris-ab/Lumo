@@ -15,6 +15,8 @@ import { subscriptionsRouter } from './subscriptions';
 import { paymentsRouter } from './payments';
 import { adminRouter } from './admin';
 import { sellersRouter } from './sellers';
+import { savedSearchesRouter } from './saved-searches';
+import { watchRouter } from './watch';
 
 // Versioned API router — mounted at /api/v1 in app.ts.
 export const v1Router: Router = Router();
@@ -40,3 +42,5 @@ v1Router.use('/subscriptions', subscriptionsRouter);
 v1Router.use('/payments', paymentsRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/sellers', sellersRouter);
+v1Router.use('/me/saved-searches', savedSearchesRouter);
+v1Router.use('/listings/:id/watch', watchRouter);

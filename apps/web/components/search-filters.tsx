@@ -45,14 +45,14 @@ export function SearchFilters({
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
 
-    state ? params.set('state', state) : params.delete('state');
-    condition ? params.set('condition', condition) : params.delete('condition');
-    sort && sort !== 'newest' ? params.set('sort', sort) : params.delete('sort');
+    if (state) params.set('state', state); else params.delete('state');
+    if (condition) params.set('condition', condition); else params.delete('condition');
+    if (sort && sort !== 'newest') params.set('sort', sort); else params.delete('sort');
 
     const min = Number(minPrice);
     const max = Number(maxPrice);
-    min > 0 ? params.set('minPriceKobo', String(min * 100)) : params.delete('minPriceKobo');
-    max > 0 ? params.set('maxPriceKobo', String(max * 100)) : params.delete('maxPriceKobo');
+    if (min > 0) params.set('minPriceKobo', String(min * 100)); else params.delete('minPriceKobo');
+    if (max > 0) params.set('maxPriceKobo', String(max * 100)); else params.delete('maxPriceKobo');
 
     router.push(`/search?${params.toString()}`);
   }
