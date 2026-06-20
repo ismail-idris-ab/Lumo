@@ -1,13 +1,19 @@
 import { prisma } from '../lib/prisma';
 import { notify } from '../lib/notify';
+import { emailUser } from '../lib/email';
 import { logger } from '../lib/logger';
 import { enqueueListingSync } from '../lib/queue';
+
+const DAY_MS = 86_400_000;
+const NUDGE_AFTER_DAYS = 20;
+const NUDGE_COOLDOWN_DAYS = 7;
 
 export interface ExpirySweepResult {
   listingsExpired: number;
   promotionsReverted: number;
   featuredReverted: number;
   subscriptionsDeactivated: number;
+  freshnessNudgesSent: number;
 }
 
 // Idempotent maintenance sweep (TRD §15, APP_FLOW §20). Safe to run repeatedly.
@@ -55,11 +61,54 @@ export async function runExpirySweep(): Promise<ExpirySweepResult> {
     data: { active: false },
   });
 
+  // 5. Freshness nudge: sellers whose APPROVED listings are 20+ days old,
+  //    not nudged in the last 7 days. Prompts them to mark as sold if it's gone.
+  const nudgeCutoff = new Date(now.getTime() - NUDGE_AFTER_DAYS * DAY_MS);
+  const cooldownCutoff = new Date(now.getTime() - NUDGE_COOLDOWN_DAYS * DAY_MS);
+
+  const toNudge = await prisma.listing.findMany({
+    where: {
+      status: 'APPROVED',
+      deletedAt: null,
+      createdAt: { lt: nudgeCutoff },
+      OR: [
+        { lastFreshnessNudgeAt: null },
+        { lastFreshnessNudgeAt: { lt: cooldownCutoff } },
+      ],
+    },
+    select: { id: true, title: true, slug: true, ownerId: true },
+  });
+
+  if (toNudge.length > 0) {
+    const webUrl = process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3000';
+    await Promise.all(
+      toNudge.map(async (l) => {
+        await notify(l.ownerId, 'listing.freshness_nudge', {
+          listingId: l.id,
+          slug: l.slug,
+          title: l.title,
+        });
+        void emailUser(
+          l.ownerId,
+          `Is your listing still available? — ${l.title}`,
+          `<p>Your listing <strong>"${l.title}"</strong> has been up for ${NUDGE_AFTER_DAYS}+ days.</p>
+           <p>If it's sold, please mark it — buyers are still seeing it.</p>
+           <p><a href="${webUrl}/dashboard/listings">Manage your listings →</a></p>`,
+        );
+      }),
+    );
+    await prisma.listing.updateMany({
+      where: { id: { in: toNudge.map((l) => l.id) } },
+      data: { lastFreshnessNudgeAt: now },
+    });
+  }
+
   const result: ExpirySweepResult = {
     listingsExpired: expiring.length,
     promotionsReverted: promo.count,
     featuredReverted: featured.count,
     subscriptionsDeactivated: subs.count,
+    freshnessNudgesSent: toNudge.length,
   };
   logger.info(result, 'Expiry sweep complete');
   return result;
