@@ -14,18 +14,18 @@ services:
     name: lumo-api
     runtime: node
     region: frankfurt # closest Render region to Nigeria; match Supabase/Upstash region
-    plan: starter
+    plan: free
     branch: main
     rootDir: . # monorepo root — pnpm filters target apps/api
     healthCheckPath: /api/v1/health
+    # Free tier has no preDeployCommand, so migrations run at the tail of build instead.
     buildCommand: >-
       corepack enable &&
       pnpm install --frozen-lockfile &&
       pnpm --filter @lumo/api prisma:generate &&
       pnpm --filter @lumo/shared build &&
-      pnpm --filter @lumo/api build
-    # Apply pending migrations once per deploy, before the new instance goes live.
-    preDeployCommand: pnpm --filter @lumo/api prisma:deploy
+      pnpm --filter @lumo/api build &&
+      pnpm --filter @lumo/api prisma:deploy
     startCommand: pnpm --filter @lumo/api start
     envVars:
       - key: NODE_ENV
@@ -37,7 +37,7 @@ services:
     name: lumo-worker
     runtime: node
     region: frankfurt
-    plan: starter
+    plan: free
     branch: main
     rootDir: .
     buildCommand: >-
