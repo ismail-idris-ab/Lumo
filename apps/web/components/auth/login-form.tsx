@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { ApiError } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Field, FieldInput } from '@/components/ui/field';
+import { FormError } from '@/components/ui/form-error';
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -27,7 +28,7 @@ export function LoginForm() {
       await login(values);
       router.push(next);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Login failed');
+      setError(e instanceof ApiError ? e.message : 'Could not reach the server. Check your connection and try again.');
     }
   }
 
@@ -39,7 +40,7 @@ export function LoginForm() {
       <Field label="Password" error={errors.password?.message}>
         <FieldInput type="password" autoComplete="current-password" {...register('password')} />
       </Field>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <FormError message={error} />}
       <Button type="submit" disabled={isSubmitting} className="w-full">
         {isSubmitting ? 'Signing in…' : 'Log in'}
       </Button>
