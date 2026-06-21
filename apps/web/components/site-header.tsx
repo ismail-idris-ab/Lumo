@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { UserMenu } from '@/components/user-menu';
 
 export function SiteHeader() {
   const { user, loading, logout } = useAuth();
@@ -26,12 +27,7 @@ export function SiteHeader() {
               <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
                 Dashboard
               </Link>
-              <button
-                onClick={() => void logout()}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Log out
-              </button>
+              <UserMenu name={user.name} onLogout={() => void logout()} />
             </>
           ) : (
             <>

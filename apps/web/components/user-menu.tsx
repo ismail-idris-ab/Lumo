@@ -1,0 +1,83 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+
+export function UserMenu({ name, onLogout }: { name: string; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onDown(e: MouseEvent) {
+      const t = e.target as Node;
+      if (panelRef.current?.contains(t)) return;
+      if (triggerRef.current?.contains(t)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700"
+      >
+        {name.charAt(0).toUpperCase()}
+      </button>
+
+      {open && (
+        <div
+          ref={panelRef}
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-md border bg-background py-1 text-sm shadow-lg"
+        >
+          <Link
+            href="/dashboard"
+            role="menuitem"
+            className="block px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+            onClick={() => setOpen(false)}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/dashboard/profile"
+            role="menuitem"
+            className="block px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+            onClick={() => setOpen(false)}
+          >
+            Profile
+          </Link>
+          <div className="my-1 border-t" />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+            className="block w-full px-3 py-2 text-left text-destructive hover:bg-accent"
+          >
+            Log out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
