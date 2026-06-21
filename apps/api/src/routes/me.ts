@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/auth';
+import { rateLimit } from '../middleware/ratelimit';
 import { prisma } from '../lib/prisma';
 import { toPublicUser } from '../lib/mappers';
 import { AppError } from '../lib/errors';
+import { clearRefreshCookie } from '../lib/cookies';
 import { getSellerAnalytics } from '../services/analytics.service';
 import { createAvatarUploadSignature } from '../lib/cloudinary';
+import * as authService from '../services/auth.service';
 import { updateProfileSchema } from '@lumo/shared';
 
 export const meRouter: Router = Router();
@@ -70,5 +73,39 @@ meRouter.get(
   authenticate,
   asyncHandler(async (req, res) => {
     res.json(await getSellerAnalytics(req.user!.id));
+  }),
+);
+
+// POST /api/v1/me/password — change password (requires current password).
+meRouter.post(
+  '/password',
+  authenticate,
+  rateLimit({ name: 'change-password', windowSec: 60, max: 5 }),
+  asyncHandler(async (req, res) => {
+    await authService.changePassword(req.user!.id, req.body);
+    res.status(204).end();
+  }),
+);
+
+// PATCH /api/v1/me/email — change email (requires current password).
+meRouter.patch(
+  '/email',
+  authenticate,
+  rateLimit({ name: 'change-email', windowSec: 60, max: 5 }),
+  asyncHandler(async (req, res) => {
+    const user = await authService.changeEmail(req.user!.id, req.body);
+    res.json({ user });
+  }),
+);
+
+// DELETE /api/v1/me — soft-delete account (requires current password).
+meRouter.delete(
+  '/',
+  authenticate,
+  rateLimit({ name: 'delete-account', windowSec: 60, max: 5 }),
+  asyncHandler(async (req, res) => {
+    await authService.deleteAccount(req.user!.id, req.body);
+    clearRefreshCookie(res);
+    res.status(204).end();
   }),
 );

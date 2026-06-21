@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { User } from '@prisma/client';
-import { loginSchema, registerSchema, type PublicUser } from '@lumo/shared';
+import {
+  loginSchema,
+  registerSchema,
+  changePasswordSchema,
+  changeEmailSchema,
+  deleteAccountSchema,
+  type PublicUser,
+} from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 import { hashPassword, verifyPassword } from '../lib/password';
 import {
@@ -121,4 +128,44 @@ export async function logout(rawToken: string | undefined): Promise<void> {
     where: { tokenHash: hashRefreshToken(rawToken), revokedAt: null },
     data: { revokedAt: new Date() },
   });
+}
+
+async function verifyCurrentPassword(userId: string, currentPassword: string): Promise<User> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.deletedAt) throw AppError.unauthorized();
+  if (!(await verifyPassword(user.passwordHash, currentPassword))) {
+    throw AppError.unauthorized('Current password is incorrect');
+  }
+  return user;
+}
+
+export async function changePassword(userId: string, input: unknown): Promise<void> {
+  const data = changePasswordSchema.parse(input);
+  await verifyCurrentPassword(userId, data.currentPassword);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: await hashPassword(data.newPassword) },
+  });
+}
+
+export async function changeEmail(userId: string, input: unknown): Promise<PublicUser> {
+  const data = changeEmailSchema.parse(input);
+  await verifyCurrentPassword(userId, data.currentPassword);
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { email: data.newEmail, emailVerified: false },
+  });
+  return toPublicUser(user);
+}
+
+export async function deleteAccount(userId: string, input: unknown): Promise<void> {
+  const data = deleteAccountSchema.parse(input);
+  await verifyCurrentPassword(userId, data.currentPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } }),
+    prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 }

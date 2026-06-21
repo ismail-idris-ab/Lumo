@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut } from 'lucide-react';
 
 export function UserMenu({ name, onLogout }: { name: string; onLogout: () => void }) {
   const [open, setOpen] = useState(false);
@@ -73,13 +73,13 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
             Dashboard
           </Link>
           <Link
-            href="/dashboard/profile"
+            href="/dashboard/settings"
             role="menuitem"
             className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setOpen(false)}
           >
-            <User className="h-4 w-4 shrink-0" />
-            Profile
+            <Settings className="h-4 w-4 shrink-0" />
+            Settings
           </Link>
           <div className="my-1 border-t" />
           <button

@@ -17,7 +17,7 @@ interface UploadSignature {
   signature: string;
 }
 
-export default function ProfilePage() {
+export default function SettingsPersonalDetailsPage() {
   const { user, refreshUser } = useAuth();
 
   const [name, setName] = useState('');
@@ -108,7 +108,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">My profile</h1>
+        <h1 className="text-xl font-bold text-slate-900">Personal details</h1>
         <p className="text-sm text-slate-500">Shown on your public seller page and listings.</p>
       </div>
 
