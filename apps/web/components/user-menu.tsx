@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { LayoutDashboard, User, LogOut } from 'lucide-react';
 
 export function UserMenu({ name, onLogout }: { name: string; onLogout: () => void }) {
   const [open, setOpen] = useState(false);
@@ -51,17 +52,19 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
           <Link
             href="/dashboard"
             role="menuitem"
-            className="block px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setOpen(false)}
           >
+            <LayoutDashboard className="h-4 w-4 shrink-0" />
             Dashboard
           </Link>
           <Link
             href="/dashboard/profile"
             role="menuitem"
-            className="block px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setOpen(false)}
           >
+            <User className="h-4 w-4 shrink-0" />
             Profile
           </Link>
           <div className="my-1 border-t" />
@@ -72,8 +75,9 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
               setOpen(false);
               onLogout();
             }}
-            className="block w-full px-3 py-2 text-left text-destructive hover:bg-accent"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-destructive hover:bg-accent"
           >
+            <LogOut className="h-4 w-4 shrink-0" />
             Log out
           </button>
         </div>
