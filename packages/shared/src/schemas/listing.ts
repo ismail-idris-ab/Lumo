@@ -13,7 +13,7 @@ export const createListingSchema = z.object({
   city: z.string().trim().min(2).max(60),
   area: z.string().trim().max(60).optional(),
   attributes: z.record(z.string(), z.unknown()).optional(),
-  contactPhone: z.string().trim().regex(/^\+?[0-9\s\-]{7,15}$/, 'Invalid phone number').optional(),
+  contactPhone: z.string().trim().regex(/^\+?[0-9\s-]{7,15}$/, 'Invalid phone number').optional(),
 });
 export type CreateListingInput = z.infer<typeof createListingSchema>;
 

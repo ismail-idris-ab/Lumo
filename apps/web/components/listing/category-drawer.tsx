@@ -128,7 +128,6 @@ export function CategoryDrawer({ open, onClose, onSelect, categories, selectedId
       const t = setTimeout(() => setMounted(false), 160);
       return () => clearTimeout(t);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // ── Close on outside click / Escape ───────────────────────────────────────

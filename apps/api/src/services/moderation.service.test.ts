@@ -4,19 +4,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // each admin action must fire (CLAUDE.md domain rule 3, 7). DB-free: Prisma and the side-effect
 // libs are mocked; toPublicListing is a passthrough so we inspect what was written.
 
-const { listing, writeAudit, notify, emailUser, enqueueListingSync } = vi.hoisted(() => ({
+const { listing, writeAudit, notify, emailUser, enqueueListingSync, enqueueCheckSavedSearches } = vi.hoisted(() => ({
   listing: { findUnique: vi.fn(), update: vi.fn() },
   writeAudit: vi.fn(),
   notify: vi.fn(),
   emailUser: vi.fn(),
   enqueueListingSync: vi.fn(),
+  enqueueCheckSavedSearches: vi.fn(),
 }));
 
 vi.mock('../lib/prisma', () => ({ prisma: { listing } }));
 vi.mock('../lib/audit', () => ({ writeAudit }));
 vi.mock('../lib/notify', () => ({ notify }));
 vi.mock('../lib/email', () => ({ emailUser }));
-vi.mock('../lib/queue', () => ({ enqueueListingSync }));
+vi.mock('../lib/queue', () => ({ enqueueListingSync, enqueueCheckSavedSearches }));
 vi.mock('./listing.service', () => ({
   listingInclude: {},
   toPublicListing: (l: unknown) => l, // passthrough — we control the shape via the update mock

@@ -57,7 +57,7 @@ const formSchema = z.object({
   state: z.string().trim().min(2).max(60),
   city: z.string().trim().min(2).max(60),
   area: z.string().trim().max(60).optional(),
-  contactPhone: z.string().trim().regex(/^\+?[0-9\s\-]{7,15}$/, 'Invalid phone number').optional().or(z.literal('')),
+  contactPhone: z.string().trim().regex(/^\+?[0-9\s-]{7,15}$/, 'Invalid phone number').optional().or(z.literal('')),
 });
 type FormValues = z.input<typeof formSchema>;
 
