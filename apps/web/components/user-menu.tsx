@@ -8,6 +8,20 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function openNow() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  }
+  function closeWithDelay() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  }
+
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -31,7 +45,7 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
   }, [open]);
 
   return (
-    <div className="relative">
+    <div className="relative" onMouseEnter={openNow} onMouseLeave={closeWithDelay}>
       <button
         ref={triggerRef}
         type="button"
