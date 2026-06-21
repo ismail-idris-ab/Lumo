@@ -2,14 +2,16 @@
 # Web (Next.js) deploys to Vercel separately. Postgres = Supabase, Redis = Upstash,
 # Search = Meilisearch Cloud — all external, wired via the env group below.
 #
-# Cron is NOT defined here: expiry sweep, payment reconcile, and search reindex run
-# inside the worker via BullMQ repeatable job schedulers (apps/api/src/jobs/main.ts).
+# Free tier has no Background Worker type, so the BullMQ worker (expiry sweep,
+# payment reconcile, search reindex schedulers — apps/api/src/jobs/main.ts) runs
+# as a second process inside the single free web service via start:combined.
+# Move it back to its own `type: worker` service once on a paid plan.
 #
 # First deploy: create the blueprint, then fill every `sync: false` secret in the
 # Render dashboard (Environment → lumo-shared group). JWT secrets auto-generate.
 
 services:
-  # ── REST API (Express) ──────────────────────────────────────────────
+  # ── REST API (Express) + BullMQ worker, combined for free tier ───────
   - type: web
     name: lumo-api
     runtime: node
@@ -26,27 +28,7 @@ services:
       pnpm --filter @lumo/shared build &&
       pnpm --filter @lumo/api build &&
       pnpm --filter @lumo/api prisma:deploy
-    startCommand: pnpm --filter @lumo/api start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - fromGroup: lumo-shared
-
-  # ── BullMQ worker (expiry, reconcile, search sync/reindex) ───────────
-  - type: worker
-    name: lumo-worker
-    runtime: node
-    region: frankfurt
-    plan: free
-    branch: main
-    rootDir: .
-    buildCommand: >-
-      corepack enable &&
-      pnpm install --frozen-lockfile &&
-      pnpm --filter @lumo/api prisma:generate &&
-      pnpm --filter @lumo/shared build &&
-      pnpm --filter @lumo/api build
-    startCommand: pnpm --filter @lumo/api worker:start
+    startCommand: pnpm --filter @lumo/api start:combined
     envVars:
       - key: NODE_ENV
         value: production
