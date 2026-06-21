@@ -11,7 +11,7 @@ verificationRouter.use(authenticate);
 verificationRouter.post(
   '/docs/sign',
   asyncHandler(async (req, res) => {
-    res.json({ signature: verificationService.getDocUploadSignature(req.user!.id) });
+    res.json(verificationService.getDocUploadSignature(req.user!.id));
   }),
 );
 
