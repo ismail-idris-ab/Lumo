@@ -24,9 +24,6 @@ export function SiteHeader() {
               <Link href="/dashboard/listings/new" className={cn(buttonVariants({ size: 'sm' }))}>
                 Post ad
               </Link>
-              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-                Dashboard
-              </Link>
               <UserMenu name={user.name} onLogout={() => void logout()} />
             </>
           ) : (

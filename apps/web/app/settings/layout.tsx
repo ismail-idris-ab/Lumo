@@ -1,21 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { ChevronLeft, User, Mail, KeyRound, Trash2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
 const SECTIONS = [
-  { href: '/dashboard/settings', label: 'Personal details', icon: User },
-  { href: '/dashboard/settings/email', label: 'Change email', icon: Mail },
-  { href: '/dashboard/settings/password', label: 'Change password', icon: KeyRound },
+  { href: '/settings', label: 'Personal details', icon: User },
+  { href: '/settings/email', label: 'Change email', icon: Mail },
+  { href: '/settings/password', label: 'Change password', icon: KeyRound },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
 
+  useEffect(() => {
+    if (!loading && !user) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+  }, [loading, user, pathname, router]);
+
+  if (loading) {
+    return <div className="container py-16 text-center text-muted-foreground">Loading…</div>;
+  }
+  if (!user) return null;
+
   return (
-    <div className="flex flex-col gap-6 sm:flex-row">
+    <div className="container flex flex-col gap-6 py-6 sm:flex-row">
       <aside className="shrink-0 sm:w-56">
         <Link
           href="/dashboard"
@@ -47,10 +60,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           })}
           <div className="my-1 border-t" />
           <Link
-            href="/dashboard/settings/delete"
+            href="/settings/delete"
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive',
-              pathname === '/dashboard/settings/delete' ? 'bg-destructive/10 font-medium' : 'hover:bg-destructive/10',
+              pathname === '/settings/delete' ? 'bg-destructive/10 font-medium' : 'hover:bg-destructive/10',
             )}
           >
             <Trash2 className="h-4 w-4 shrink-0" />

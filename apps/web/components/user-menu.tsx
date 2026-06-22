@@ -73,7 +73,7 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
             Dashboard
           </Link>
           <Link
-            href="/dashboard/settings"
+            href="/settings"
             role="menuitem"
             className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setOpen(false)}
