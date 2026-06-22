@@ -4,6 +4,7 @@ import './globals.css';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, jsonLdScript, organizationJsonLd } from '@/lib/seo';
 import { Providers } from '@/components/providers';
 import { SiteHeader } from '@/components/site-header';
+import { BottomNav } from '@/components/bottom-nav';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
@@ -29,7 +30,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body className="flex min-h-dvh flex-col antialiased">
+      <body className="flex min-h-dvh flex-col pb-24 antialiased sm:pb-0">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={jsonLdScript(organizationJsonLd())}
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </p>
             </div>
           </footer>
+          <BottomNav />
         </Providers>
       </body>
     </html>
