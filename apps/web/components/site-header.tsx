@@ -8,9 +8,11 @@ import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/user-menu';
 import { NavIconLink } from '@/components/nav-icon-link';
 import { NotificationBell } from '@/components/notification-bell';
+import { useUnreadMessages } from '@/lib/use-unread-messages';
 
 export function SiteHeader() {
   const { user, loading, logout } = useAuth();
+  const unreadMessages = useUnreadMessages(!!user);
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
@@ -23,7 +25,13 @@ export function SiteHeader() {
             <>
               <div className="hidden items-center gap-1.5 sm:flex">
                 <NavIconLink href="/dashboard/favorites" label="Favorites" icon={Heart} tone="rose" />
-                <NavIconLink href="/dashboard/messages" label="Messages" icon={MessageCircle} tone="blue" />
+                <NavIconLink
+                  href="/dashboard/messages"
+                  label="Messages"
+                  icon={MessageCircle}
+                  tone="blue"
+                  badge={unreadMessages}
+                />
               </div>
               <NotificationBell />
               <span className="hidden sm:inline-flex">

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, Plus, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useUnreadMessages } from '@/lib/use-unread-messages';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
 export function BottomNav() {
   const { user } = useAuth();
   const pathname = usePathname();
+  const unreadMessages = useUnreadMessages(!!user);
 
   if (!user) return null;
 
@@ -64,16 +66,24 @@ export function BottomNav() {
       {TABS.slice(2).map((tab) => {
         const active = pathname.startsWith(tab.href);
         const Icon = tab.icon;
+        const showBadge = tab.href === '/dashboard/messages' && unreadMessages > 0;
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className="flex flex-col items-center justify-center gap-0.5 py-2"
+            className="relative flex flex-col items-center justify-center gap-0.5 py-2"
           >
-            <Icon
-              className={cn('h-5 w-5', active ? 'text-emerald-600' : 'text-slate-400')}
-              strokeWidth={active ? 2.5 : 2}
-            />
+            <span className="relative">
+              <Icon
+                className={cn('h-5 w-5', active ? 'text-emerald-600' : 'text-slate-400')}
+                strokeWidth={active ? 2.5 : 2}
+              />
+              {showBadge && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </span>
             <span
               className={cn(
                 'text-[11px]',

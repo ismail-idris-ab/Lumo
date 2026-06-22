@@ -6,10 +6,13 @@ import { Bell } from 'lucide-react';
 import type { NotificationDTO } from '@lumo/shared';
 import { api } from '@/lib/api-client';
 import { formatNotification, timeAgo } from '@/lib/notifications';
+import { getSocket } from '@/lib/socket';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
-const POLL_MS = 45_000;
+// Live updates arrive over the socket (apps/api's notify() emits 'notification:new');
+// this is just a fallback in case the socket drops.
+const POLL_MS = 120_000;
 
 export function NotificationBell() {
   const router = useRouter();
@@ -34,6 +37,18 @@ export function NotificationBell() {
     const id = setInterval(() => void load(), POLL_MS);
     return () => clearInterval(id);
   }, [load]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    function onNew(n: NotificationDTO) {
+      setItems((prev) => (prev.some((i) => i.id === n.id) ? prev : [n, ...prev]));
+      if (!n.readAt) setUnreadCount((c) => c + 1);
+    }
+    socket.on('notification:new', onNew);
+    return () => {
+      socket.off('notification:new', onNew);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;

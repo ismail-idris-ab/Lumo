@@ -16,11 +16,13 @@ export function NavIconLink({
   label,
   icon: Icon,
   tone,
+  badge,
 }: {
   href: string;
   label: string;
   icon: LucideIcon;
   tone: IconTone;
+  badge?: number;
 }) {
   return (
     <Tooltip label={label}>
@@ -28,11 +30,16 @@ export function NavIconLink({
         href={href}
         aria-label={label}
         className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-full transition-colors',
+          'relative flex h-9 w-9 items-center justify-center rounded-full transition-colors',
           TONE[tone],
         )}
       >
         <Icon className="h-[18px] w-[18px]" />
+        {!!badge && badge > 0 && (
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
       </Link>
     </Tooltip>
   );
