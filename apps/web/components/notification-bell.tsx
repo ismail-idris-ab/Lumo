@@ -80,7 +80,7 @@ export function NotificationBell() {
           aria-label="Notifications"
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100"
         >
           <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (

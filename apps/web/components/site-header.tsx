@@ -21,17 +21,17 @@ export function SiteHeader() {
         <nav className="flex items-center gap-2 text-sm">
           {loading ? null : user ? (
             <>
+              <div className="hidden items-center gap-1.5 sm:flex">
+                <NavIconLink href="/dashboard/favorites" label="Favorites" icon={Heart} tone="rose" />
+                <NavIconLink href="/dashboard/messages" label="Messages" icon={MessageCircle} tone="blue" />
+                <NotificationBell />
+              </div>
               <Link
                 href="/dashboard/listings/new"
                 className={cn(buttonVariants({ size: 'sm' }), 'mr-1')}
               >
                 Post ad
               </Link>
-              <div className="hidden items-center gap-0.5 sm:flex">
-                <NavIconLink href="/dashboard/favorites" label="Favorites" icon={Heart} />
-                <NavIconLink href="/dashboard/messages" label="Messages" icon={MessageCircle} />
-                <NotificationBell />
-              </div>
               <UserMenu name={user.name} avatarUrl={user.avatarUrl} onLogout={() => void logout()} />
             </>
           ) : (
