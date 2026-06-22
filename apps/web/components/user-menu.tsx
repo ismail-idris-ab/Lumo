@@ -2,9 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { LayoutDashboard, Settings, LogOut } from 'lucide-react';
 
-export function UserMenu({ name, onLogout }: { name: string; onLogout: () => void }) {
+export function UserMenu({
+  name,
+  avatarUrl,
+  onLogout,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+  onLogout: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -52,9 +61,13 @@ export function UserMenu({ name, onLogout }: { name: string; onLogout: () => voi
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700"
+        className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-black/5"
       >
-        {name.charAt(0).toUpperCase()}
+        {avatarUrl ? (
+          <Image src={avatarUrl} alt={name} fill className="object-cover" sizes="32px" />
+        ) : (
+          name.charAt(0).toUpperCase()
+        )}
       </button>
 
       {open && (

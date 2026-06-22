@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { Heart, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/user-menu';
+import { NavIconLink } from '@/components/nav-icon-link';
+import { NotificationBell } from '@/components/notification-bell';
 
 export function SiteHeader() {
   const { user, loading, logout } = useAuth();
@@ -15,16 +18,21 @@ export function SiteHeader() {
         <Link href="/" className="text-lg font-bold">
           Lumo
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
-          <Link href="/search" className="text-muted-foreground hover:text-foreground">
-            Browse
-          </Link>
+        <nav className="flex items-center gap-2 text-sm">
           {loading ? null : user ? (
             <>
-              <Link href="/dashboard/listings/new" className={cn(buttonVariants({ size: 'sm' }))}>
+              <Link
+                href="/dashboard/listings/new"
+                className={cn(buttonVariants({ size: 'sm' }), 'mr-1')}
+              >
                 Post ad
               </Link>
-              <UserMenu name={user.name} onLogout={() => void logout()} />
+              <div className="hidden items-center gap-0.5 sm:flex">
+                <NavIconLink href="/dashboard/favorites" label="Favorites" icon={Heart} />
+                <NavIconLink href="/dashboard/messages" label="Messages" icon={MessageCircle} />
+                <NotificationBell />
+              </div>
+              <UserMenu name={user.name} avatarUrl={user.avatarUrl} onLogout={() => void logout()} />
             </>
           ) : (
             <>
