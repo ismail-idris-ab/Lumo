@@ -24,14 +24,16 @@ export function SiteHeader() {
               <div className="hidden items-center gap-1.5 sm:flex">
                 <NavIconLink href="/dashboard/favorites" label="Favorites" icon={Heart} tone="rose" />
                 <NavIconLink href="/dashboard/messages" label="Messages" icon={MessageCircle} tone="blue" />
-                <NotificationBell />
               </div>
-              <Link
-                href="/dashboard/listings/new"
-                className={cn(buttonVariants({ size: 'sm' }), 'mr-1')}
-              >
-                Post ad
-              </Link>
+              <NotificationBell />
+              <span className="hidden sm:inline-flex">
+                <Link
+                  href="/dashboard/listings/new"
+                  className={cn(buttonVariants({ size: 'sm' }), 'mr-1')}
+                >
+                  Post ad
+                </Link>
+              </span>
               <UserMenu name={user.name} avatarUrl={user.avatarUrl} onLogout={() => void logout()} />
             </>
           ) : (
