@@ -124,8 +124,14 @@ export async function fulfillPayment(reference: string, paidAmountKobo: number):
 
   const meta = (payment.metadata ?? {}) as Record<string, unknown>;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.payment.update({ where: { reference }, data: { status: 'SUCCESS' } });
+  // Claim the row with a conditional update — its affected-row count is the race lock.
+  // A plain read-then-write under READ COMMITTED locks nothing; this does.
+  const granted = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.payment.updateMany({
+      where: { reference, status: 'PENDING' },
+      data: { status: 'SUCCESS' },
+    });
+    if (count === 0) return false; // lost the race / already fulfilled — grant nothing
 
     switch (payment.purpose) {
       case 'PROMOTION': {
@@ -171,7 +177,9 @@ export async function fulfillPayment(reference: string, paidAmountKobo: number):
         break;
       }
     }
+    return true;
   });
+  if (!granted) return;
 
   // Post-commit side effects.
   if (payment.purpose === 'PROMOTION' && payment.targetId) {

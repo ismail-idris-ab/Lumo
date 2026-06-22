@@ -6,31 +6,42 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // asserting the guard logic and that a valid PROMOTION actually fulfils + side-effects fire.
 
 // Stubs live in a hoisted block so they exist when the (also-hoisted) vi.mock factories run.
-const { payment, listing, verificationRequest, $transaction, writeAudit, notify, emailUser, enqueueListingSync } =
-  vi.hoisted(() => {
-    const payment = { findUnique: vi.fn(), update: vi.fn() };
-    const listing = { update: vi.fn() };
-    const verificationRequest = { updateMany: vi.fn() };
-    return {
-      payment,
-      listing,
-      verificationRequest,
-      // $transaction runs the callback with a `tx` exposing the same model stubs.
-      $transaction: vi.fn(async (cb: (tx: unknown) => unknown) =>
-        cb({
-          payment,
-          listing,
-          verificationRequest,
-          sellerSubscription: { create: vi.fn() },
-          sellerProfile: { upsert: vi.fn() },
-        }),
-      ),
-      writeAudit: vi.fn(),
-      notify: vi.fn(),
-      emailUser: vi.fn(),
-      enqueueListingSync: vi.fn(),
-    };
-  });
+const {
+  payment,
+  listing,
+  verificationRequest,
+  sellerSubscription,
+  $transaction,
+  writeAudit,
+  notify,
+  emailUser,
+  enqueueListingSync,
+} = vi.hoisted(() => {
+  const payment = { findUnique: vi.fn(), updateMany: vi.fn() };
+  const listing = { update: vi.fn() };
+  const verificationRequest = { updateMany: vi.fn() };
+  const sellerSubscription = { create: vi.fn() };
+  return {
+    payment,
+    listing,
+    verificationRequest,
+    sellerSubscription,
+    // $transaction runs the callback with a `tx` exposing the same model stubs.
+    $transaction: vi.fn(async (cb: (tx: unknown) => unknown) =>
+      cb({
+        payment,
+        listing,
+        verificationRequest,
+        sellerSubscription,
+        sellerProfile: { upsert: vi.fn() },
+      }),
+    ),
+    writeAudit: vi.fn(),
+    notify: vi.fn(),
+    emailUser: vi.fn(),
+    enqueueListingSync: vi.fn(),
+  };
+});
 
 vi.mock('../lib/prisma', () => ({
   prisma: { payment, listing, verificationRequest, $transaction },
@@ -55,6 +66,7 @@ const PENDING_PROMO = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  payment.updateMany.mockResolvedValue({ count: 1 });
 });
 
 describe('fulfillPayment — money-path guards', () => {
@@ -64,7 +76,7 @@ describe('fulfillPayment — money-path guards', () => {
     await fulfillPayment('does_not_exist', 50_000);
 
     expect($transaction).not.toHaveBeenCalled();
-    expect(payment.update).not.toHaveBeenCalled();
+    expect(payment.updateMany).not.toHaveBeenCalled();
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
@@ -84,7 +96,7 @@ describe('fulfillPayment — money-path guards', () => {
     await fulfillPayment(PENDING_PROMO.reference, 100); // attacker underpays
 
     expect($transaction).not.toHaveBeenCalled();
-    expect(payment.update).not.toHaveBeenCalled();
+    expect(payment.updateMany).not.toHaveBeenCalled();
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
@@ -93,9 +105,10 @@ describe('fulfillPayment — money-path guards', () => {
 
     await fulfillPayment(PENDING_PROMO.reference, PENDING_PROMO.amountKobo);
 
-    expect(payment.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { reference: PENDING_PROMO.reference }, data: { status: 'SUCCESS' } }),
-    );
+    expect(payment.updateMany).toHaveBeenCalledWith({
+      where: { reference: PENDING_PROMO.reference, status: 'PENDING' },
+      data: { status: 'SUCCESS' },
+    });
     expect(listing.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'listing_1' },
@@ -126,5 +139,33 @@ describe('fulfillPayment — money-path guards', () => {
         data: { feePaid: true },
       }),
     );
+  });
+
+  it('grants exactly once when two concurrent calls both observe PENDING (webhook retry vs reconcile)', async () => {
+    const PENDING_SUB = {
+      id: 'pay_3',
+      userId: 'u1',
+      purpose: 'SUBSCRIPTION' as const,
+      amountKobo: 500_000,
+      status: 'PENDING' as const,
+      reference: 'lumo_ref_3',
+      targetId: 'plan_1',
+      metadata: { planId: 'plan_1', purpose: 'SUBSCRIPTION' },
+    };
+    // Both invocations read PENDING via findUnique before either's transaction runs —
+    // that's the race. Only the first updateMany actually claims the row (count: 1);
+    // the second loses (count: 0) because the first already flipped status to SUCCESS.
+    payment.findUnique.mockResolvedValue(PENDING_SUB);
+    payment.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    await fulfillPayment(PENDING_SUB.reference, PENDING_SUB.amountKobo);
+    await fulfillPayment(PENDING_SUB.reference, PENDING_SUB.amountKobo);
+
+    expect(sellerSubscription.create).toHaveBeenCalledTimes(1);
+    expect(writeAudit).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(emailUser).toHaveBeenCalledTimes(1);
   });
 });
