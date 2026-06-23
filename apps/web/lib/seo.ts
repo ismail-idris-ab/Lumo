@@ -4,6 +4,13 @@ export const SITE_NAME = 'Lumo';
 export const SITE_URL = process.env.NEXT_PUBLIC_WEB_BASE_URL ?? 'http://localhost:3000';
 export const SITE_DESCRIPTION = 'The trusted local marketplace for verified Nigerian sellers.';
 
+export function escapeXml(s: string): string {
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]!,
+  );
+}
+
 // JSON-LD builders (TRD §24). Conditions mapped to schema.org enums.
 const CONDITION_SCHEMA: Record<string, string> = {
   NEW: 'https://schema.org/NewCondition',

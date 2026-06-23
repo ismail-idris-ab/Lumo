@@ -216,6 +216,7 @@ model Listing {
 
   @@index([status, categoryId, state, city])
   @@index([status, isPromoted, createdAt])
+  @@index([status, createdAt])
 }
 
 model ListingImage {

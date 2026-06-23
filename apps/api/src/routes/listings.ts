@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { SITEMAP_CHUNK_SIZE } from '@lumo/shared';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/auth';
 import { rateLimit } from '../middleware/ratelimit';
@@ -16,6 +17,25 @@ listingsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     res.json(await listingService.listPublicListings(req.query));
+  }),
+);
+
+// GET /api/v1/listings/sitemap/count — total APPROVED+live listing count. Must precede /:slug.
+listingsRouter.get(
+  '/sitemap/count',
+  asyncHandler(async (_req, res) => {
+    res.json({ total: await listingService.countSitemapListings() });
+  }),
+);
+
+// GET /api/v1/listings/sitemap?page&limit — Postgres-backed sitemap chunk. Must precede /:slug.
+listingsRouter.get(
+  '/sitemap',
+  asyncHandler(async (req, res) => {
+    const page = Math.max(0, Number(req.query.page ?? 0));
+    const limit = Math.min(SITEMAP_CHUNK_SIZE, Math.max(1, Number(req.query.limit ?? SITEMAP_CHUNK_SIZE)));
+    const items = await listingService.listSitemapListings(page * limit, limit);
+    res.json({ items });
   }),
 );
 

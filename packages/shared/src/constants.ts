@@ -23,6 +23,9 @@ export const NG_PHONE_REGEX = /^(\+234|0)[789]\d{9}$/;
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
 
+// Sitemap chunking — single source of truth for both the api's slicer and the web's chunk counter.
+export const SITEMAP_CHUNK_SIZE = 10_000;
+
 // Listings.
 export const LISTING_TTL_DAYS = 30; // auto-expire TTL (PRD §11)
 export const LISTING_MAX_IMAGES = 8; // 1–8 images per listing (TRD §12, §22)

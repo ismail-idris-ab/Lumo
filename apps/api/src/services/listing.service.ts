@@ -223,6 +223,31 @@ export async function listMyListings(ownerId: string): Promise<PublicListing[]> 
   return rows.map(toPublicListing);
 }
 
+// Same public-visibility predicate as listPublicListings/getListingBySlug — sitemap must only
+// ever list what a visitor could actually open.
+const SITEMAP_WHERE: Prisma.ListingWhereInput = {
+  status: 'APPROVED',
+  deletedAt: null,
+  expiresAt: { gt: new Date() },
+};
+
+export async function countSitemapListings(): Promise<number> {
+  return prisma.listing.count({ where: SITEMAP_WHERE });
+}
+
+export async function listSitemapListings(
+  skip: number,
+  take: number,
+): Promise<{ slug: string; updatedAt: Date }[]> {
+  return prisma.listing.findMany({
+    where: SITEMAP_WHERE,
+    select: { slug: true, updatedAt: true },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    skip,
+    take,
+  });
+}
+
 const EDITABLE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'] as const;
 
 export async function updateListing(

@@ -1,4 +1,4 @@
-import type { CategorySummary, Paginated, PublicListing, SearchListing, SellerReviewDTO, SellerPublicProfile } from '@lumo/shared';
+import { SITEMAP_CHUNK_SIZE, type CategorySummary, type Paginated, type PublicListing, type SearchListing, type SellerReviewDTO, type SellerPublicProfile } from '@lumo/shared';
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
@@ -75,4 +75,17 @@ export async function getSellerReviews(
     60,
   );
   return data ?? { reviews: [], total: 0 };
+}
+
+export async function getSitemapCount(): Promise<number> {
+  const data = await get<{ total: number }>('/listings/sitemap/count', 3600);
+  return data?.total ?? 0;
+}
+
+export async function getSitemapChunk(page: number): Promise<{ slug: string; updatedAt: string }[]> {
+  const data = await get<{ items: { slug: string; updatedAt: string }[] }>(
+    `/listings/sitemap?page=${page}&limit=${SITEMAP_CHUNK_SIZE}`,
+    3600,
+  );
+  return data?.items ?? [];
 }
