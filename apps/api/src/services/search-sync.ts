@@ -20,27 +20,61 @@ export async function syncListingDoc(listingId: string): Promise<void> {
   }
 }
 
-// Full reconcile: rebuild the index from Postgres (source of truth).
+const REINDEX_BATCH = 1000;
+
+// Full reconcile: rebuild the index from Postgres (source of truth). Paginated in all three
+// stages so this scales past 10k listings — a single findMany/addDocuments/getDocuments(limit)
+// would silently miss anything beyond the first page.
 // Upserts all approved docs first, then deletes any stale ones — avoids empty-index window.
 export async function reindexAllApproved(): Promise<number> {
   if (!isSearchConfigured) return 0;
   const index = getListingsIndex();
-  const listings = await prisma.listing.findMany({
-    where: { status: 'APPROVED', deletedAt: null, expiresAt: { gt: new Date() } },
-    include: listingInclude,
-  });
 
-  if (listings.length > 0) {
-    const task = await index.addDocuments(listings.map(buildListingDoc));
+  // Stage 1: paginate Postgres in keyset batches, upsert each batch, and wait for the index to
+  // reflect it before reading the next batch — ALL adds must land before stage 2's stale scan
+  // runs, or newly-added docs would look stale.
+  const liveIds = new Set<string>();
+  let total = 0;
+  let cursor: string | undefined;
+  for (;;) {
+    const batch = await prisma.listing.findMany({
+      where: { status: 'APPROVED', deletedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { id: 'asc' },
+      take: REINDEX_BATCH,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: listingInclude,
+    });
+    if (batch.length === 0) break;
+
+    const task = await index.addDocuments(batch.map(buildListingDoc));
     await index.waitForTask(task.taskUid);
+
+    for (const l of batch) liveIds.add(l.id);
+    total += batch.length;
+    cursor = batch[batch.length - 1]!.id;
+    if (batch.length < REINDEX_BATCH) break;
   }
 
-  // Remove any stale docs (non-approved, expired, deleted) not in the current set.
-  const approvedIds = new Set(listings.map((l) => l.id));
-  const { results: allDocs } = await index.getDocuments({ limit: 10000, fields: ['id'] });
-  const staleIds = allDocs.map((d) => d.id as string).filter((id) => !approvedIds.has(id));
-  if (staleIds.length > 0) await index.deleteDocuments(staleIds);
+  // Stage 2: page the FULL index (not just the first page) to find stale ids. The live-id Set
+  // is fine to low millions of listings; well past that, swap this for per-page existence
+  // checks against Postgres instead of an in-memory Set diff — out of scope here.
+  const staleIds: string[] = [];
+  let offset = 0;
+  for (;;) {
+    const { results } = await index.getDocuments({ limit: REINDEX_BATCH, offset, fields: ['id'] });
+    for (const doc of results) {
+      const id = doc.id as string;
+      if (!liveIds.has(id)) staleIds.push(id);
+    }
+    if (results.length < REINDEX_BATCH) break;
+    offset += REINDEX_BATCH;
+  }
 
-  logger.info({ count: listings.length, removed: staleIds.length }, 'Search reindex complete');
-  return listings.length;
+  // Stage 3: delete stale ids in chunks, not one giant array.
+  for (let i = 0; i < staleIds.length; i += REINDEX_BATCH) {
+    await index.deleteDocuments(staleIds.slice(i, i + REINDEX_BATCH));
+  }
+
+  logger.info({ count: total, removed: staleIds.length }, 'Search reindex complete');
+  return total;
 }
