@@ -54,6 +54,11 @@ export function getListingsIndex(): Index<ListingDoc> {
 export function buildListingDoc(l: HydratedListing): ListingDoc {
   const primary = l.images.find((i) => i.isPrimary) ?? l.images[0];
   const tier = (l.promotionTier ?? 'NONE') as PromotionTier;
+  // promotionTier/TIER_WEIGHT stay dormant for a future multi-tier feature — today's seeded
+  // packages are single-tier (duration only), so the real signal is isPromoted + an unexpired
+  // promotedUntil. Deriving it here (rather than trusting the stored isPromoted) also makes a
+  // re-synced doc self-correct even if the expiry sweep hasn't run yet.
+  const promoted = l.isPromoted && !!l.promotedUntil && l.promotedUntil > new Date();
   const createdAt = l.owner.createdAt instanceof Date ? l.owner.createdAt : new Date(l.owner.createdAt);
   const sellerYears = Math.floor((Date.now() - createdAt.getTime()) / (365.25 * 24 * 3600 * 1000));
   return {
@@ -68,9 +73,9 @@ export function buildListingDoc(l: HydratedListing): ListingDoc {
     area: l.area,
     priceKobo: l.priceKobo,
     condition: l.condition,
-    isPromoted: l.isPromoted,
+    isPromoted: promoted,
     promotionTier: tier,
-    tierWeight: TIER_WEIGHT[tier],
+    tierWeight: promoted ? 1 : 0,
     promotedUntil: l.promotedUntil ? l.promotedUntil.getTime() : null,
     createdAt: l.createdAt.getTime(),
     primaryImage: primary?.url ?? null,
