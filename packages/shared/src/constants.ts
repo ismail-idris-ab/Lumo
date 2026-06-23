@@ -30,6 +30,10 @@ export const SITEMAP_CHUNK_SIZE = 10_000;
 export const LISTING_TTL_DAYS = 30; // auto-expire TTL (PRD §11)
 export const LISTING_MAX_IMAGES = 8; // 1–8 images per listing (TRD §12, §22)
 
+// Seller trust-tiered auto-approval (moderation bypass, gated by AUTO_APPROVE_ENABLED).
+export const AUTO_APPROVE_MIN_APPROVALS = 3;
+export const AUTO_APPROVE_CLEAN_WINDOW_DAYS = 30;
+
 // Monetisation fixed prices (kobo) — PRD §15. Packages/plans are seeded; these are flat-rate.
 export const FEATURED_PRICE_KOBO = 1_000_000; // ₦10,000 / month
 export const FEATURED_DAYS = 30;

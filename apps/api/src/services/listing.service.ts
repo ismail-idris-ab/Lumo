@@ -6,6 +6,8 @@ import {
   listingQuerySchema,
   updateListingSchema,
   LISTING_TTL_DAYS,
+  AUTO_APPROVE_MIN_APPROVALS,
+  AUTO_APPROVE_CLEAN_WINDOW_DAYS,
   type ListingQuery,
   type Paginated,
   type PublicListing,
@@ -13,12 +15,14 @@ import {
 } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
-import { enqueueListingSync } from '../lib/queue';
+import { config } from '../config/env';
+import { enqueueListingSync, enqueueCheckSavedSearches } from '../lib/queue';
 import { getRedis } from '../lib/redis';
 import { assertOwnership } from '../middleware/rbac';
 import { notify } from '../lib/notify';
 import { sendEmail } from '../lib/email';
 import { formatKobo } from '../lib/format';
+import { writeAudit } from '../lib/audit';
 
 type Principal = { id: string; roles: Role[] };
 
@@ -103,6 +107,63 @@ async function generateUniqueSlug(city: string, title: string): Promise<string> 
   throw AppError.conflict('Could not generate a unique slug; try again');
 }
 
+async function isSellerVerified(ownerId: string): Promise<boolean> {
+  const profile = await prisma.sellerProfile.findUnique({
+    where: { userId: ownerId },
+    select: { verification: true },
+  });
+  return profile?.verification === 'VERIFIED';
+}
+
+// Seller trust-tiered auto-approval — a moderation-bypass policy, gated by
+// config.AUTO_APPROVE_ENABLED. Implements the exact rule from the spec; do not relax.
+export async function resolveInitialStatus(ownerId: string): Promise<'PENDING' | 'APPROVED'> {
+  if (!config.AUTO_APPROVE_ENABLED) return 'PENDING';
+
+  const [verified, user] = await Promise.all([
+    isSellerVerified(ownerId),
+    prisma.user.findUnique({ where: { id: ownerId }, select: { createdAt: true } }),
+  ]);
+  if (!user || user.createdAt > new Date(Date.now() - DAY_MS)) return 'PENDING';
+
+  let trusted = verified;
+  if (!trusted) {
+    const approvals = await prisma.listing.count({
+      where: { ownerId, status: { in: ['APPROVED', 'SOLD', 'EXPIRED'] } },
+    });
+    trusted = approvals >= AUTO_APPROVE_MIN_APPROVALS;
+  }
+  if (!trusted) return 'PENDING';
+
+  const cleanWindowStart = new Date(Date.now() - AUTO_APPROVE_CLEAN_WINDOW_DAYS * DAY_MS);
+  const uncleanCount = await prisma.listing.count({
+    where: {
+      ownerId,
+      OR: [
+        { status: 'SUSPENDED' },
+        { status: { in: ['REJECTED', 'SUSPENDED'] }, updatedAt: { gte: cleanWindowStart } },
+      ],
+    },
+  });
+  return uncleanCount === 0 ? 'APPROVED' : 'PENDING';
+}
+
+// Replicates moderation.service.ts's approveListing side effects (minus the admin-approved
+// email) for a listing that skipped the PENDING queue via the trust policy above.
+async function applyAutoApprove(actorId: string, listing: { id: string; slug: string }): Promise<void> {
+  await writeAudit({
+    actorId,
+    action: 'listing.auto_approve',
+    targetType: 'Listing',
+    targetId: listing.id,
+    before: { status: 'PENDING' },
+    after: { status: 'APPROVED' },
+  });
+  await enqueueListingSync(listing.id);
+  await enqueueCheckSavedSearches(listing.id);
+  await notify(actorId, 'listing.approved', { listingId: listing.id, slug: listing.slug });
+}
+
 export async function createListing(input: unknown, ownerId: string): Promise<PublicListing> {
   const data = createListingSchema.parse(input);
 
@@ -121,6 +182,9 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
   });
 
   const slug = await generateUniqueSlug(data.city, data.title);
+  // Trusted sellers (verified or clean track record) skip the PENDING queue — domain rule 2
+  // exception, gated by config.AUTO_APPROVE_ENABLED.
+  const status = await resolveInitialStatus(ownerId);
 
   const listing = await prisma.listing.create({
     data: {
@@ -129,7 +193,7 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
       description: data.description,
       priceKobo: data.priceKobo,
       condition: data.condition,
-      status: 'PENDING', // new listings are invisible until approved (domain rule 2)
+      status,
       state: data.state,
       city: data.city,
       area: data.area ?? null,
@@ -141,6 +205,7 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
     },
     include: listingInclude,
   });
+  if (status === 'APPROVED') await applyAutoApprove(ownerId, listing);
   return toPublicListing(listing);
 }
 
@@ -270,6 +335,12 @@ export async function updateListing(
   }
 
   const hasChanges = Object.keys(data).length > 0;
+  // Material edits re-enter moderation (domain rule 2) — UNLESS the seller is verified, in
+  // which case the edit auto-approves (verified-only; track-record trust does not extend to
+  // edits). Slug stays stable (SEO).
+  const editStatus: 'PENDING' | 'APPROVED' | undefined = hasChanges
+    ? (await isSellerVerified(existing.ownerId)) ? 'APPROVED' : 'PENDING'
+    : undefined;
   const { attributes, ...scalarData } = data;
   const listing = await prisma.listing.update({
     where: { id },
@@ -277,13 +348,17 @@ export async function updateListing(
       ...scalarData,
       // Explicitly handle nullable JSON — Prisma requires Prisma.JsonNull not null.
       ...(attributes !== undefined ? { attributes: (attributes as Prisma.InputJsonValue) ?? Prisma.JsonNull } : {}),
-      // Material edits re-enter moderation (domain rule 2). Slug stays stable (SEO).
-      ...(hasChanges ? { status: 'PENDING' } : {}),
+      ...(editStatus ? { status: editStatus } : {}),
     },
     include: listingInclude,
   });
-  // Edit re-pends (or no-op) → drop from search until re-approved.
-  if (hasChanges) await enqueueListingSync(id);
+  if (editStatus === 'APPROVED') {
+    // applyAutoApprove enqueues the search sync itself — don't double-enqueue.
+    await applyAutoApprove(existing.ownerId, listing);
+  } else if (hasChanges) {
+    // Edit re-pends (or no-op) → drop from search until re-approved.
+    await enqueueListingSync(id);
+  }
 
   // Notify price watchers when price drops.
   if (data.priceKobo !== undefined && data.priceKobo < existing.priceKobo) {

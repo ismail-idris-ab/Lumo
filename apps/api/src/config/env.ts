@@ -45,6 +45,9 @@ const envSchema = z.object({
 
   // Monitoring (optional; error reporting is a no-op when unset).
   SENTRY_DSN: z.string().url().optional(),
+
+  // Seller trust-tiered auto-approval kill switch (moderation bypass) — off by default.
+  AUTO_APPROVE_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
 });
 
 const parsed = envSchema.safeParse(process.env);
