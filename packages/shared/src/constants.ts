@@ -34,6 +34,10 @@ export const LISTING_MAX_IMAGES = 8; // 1–8 images per listing (TRD §12, §22
 export const AUTO_APPROVE_MIN_APPROVALS = 3;
 export const AUTO_APPROVE_CLEAN_WINDOW_DAYS = 30;
 
+// Post-publish review sample for auto-approved listings (spot-check safety net).
+export const SPOTCHECK_FIRST_N = 3;
+export const SPOTCHECK_AUTOCLEAR_DAYS = 7;
+
 // Monetisation fixed prices (kobo) — PRD §15. Packages/plans are seeded; these are flat-rate.
 export const FEATURED_PRICE_KOBO = 1_000_000; // ₦10,000 / month
 export const FEATURED_DAYS = 30;

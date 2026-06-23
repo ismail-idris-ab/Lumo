@@ -1,3 +1,4 @@
+import { SPOTCHECK_AUTOCLEAR_DAYS } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 import { notify } from '../lib/notify';
 import { emailUser } from '../lib/email';
@@ -14,6 +15,7 @@ export interface ExpirySweepResult {
   featuredReverted: number;
   subscriptionsDeactivated: number;
   freshnessNudgesSent: number;
+  spotChecksAutoCleared: number;
 }
 
 // Idempotent maintenance sweep (TRD §15, APP_FLOW §20). Safe to run repeatedly.
@@ -103,12 +105,20 @@ export async function runExpirySweep(): Promise<ExpirySweepResult> {
     });
   }
 
+  // 6. Queue hygiene: an unread SPOT_CHECK review past its SLA auto-clears — never REPORTED.
+  const autoclearCutoff = new Date(now.getTime() - SPOTCHECK_AUTOCLEAR_DAYS * DAY_MS);
+  const autoCleared = await prisma.moderationReview.updateMany({
+    where: { state: 'OPEN', reason: 'SPOT_CHECK', createdAt: { lt: autoclearCutoff } },
+    data: { state: 'CLEARED', reviewedAt: now, outcome: 'auto-cleared: SLA' },
+  });
+
   const result: ExpirySweepResult = {
     listingsExpired: expiring.length,
     promotionsReverted: promo.count,
     featuredReverted: featured.count,
     subscriptionsDeactivated: subs.count,
     freshnessNudgesSent: toNudge.length,
+    spotChecksAutoCleared: autoCleared.count,
   };
   logger.info(result, 'Expiry sweep complete');
   return result;

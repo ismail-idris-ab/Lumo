@@ -126,9 +126,13 @@ export async function requestChanges(id: string, input: unknown, actor: Actor): 
   return listing;
 }
 
-// Flag for priority review — audit marker only (no status field in v1 schema).
+// Flag for priority review — creates a MANUAL_FLAG review (post-publish, listing stays live)
+// plus the audit trail entry.
 export async function flagListing(id: string, actor: Actor): Promise<PublicListing> {
   const before = await loadListing(id);
+  await prisma.moderationReview.create({
+    data: { listingId: id, sellerId: before.ownerId, reason: 'MANUAL_FLAG', state: 'OPEN' },
+  });
   await writeAudit({
     actorId: actor.id,
     action: 'listing.flag',
@@ -140,6 +144,67 @@ export async function flagListing(id: string, actor: Actor): Promise<PublicListi
   });
   const listing = await prisma.listing.findUnique({ where: { id }, include: listingInclude });
   return toPublicListing(listing!);
+}
+
+// Post-publish review queue: PENDING listings (pre-publish, blocks liquidity) always sort
+// above OPEN reviews (post-publish, doesn't block anything) — a solo admin works top-down.
+export interface ReviewQueueItem {
+  kind: 'PENDING' | 'REVIEW';
+  listing: PublicListing;
+  review?: { id: string; reason: string; createdAt: string };
+}
+export async function listReviewQueue(): Promise<ReviewQueueItem[]> {
+  const [pending, openReviews] = await Promise.all([
+    prisma.listing.findMany({
+      where: { status: 'PENDING', deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      include: listingInclude,
+    }),
+    prisma.moderationReview.findMany({
+      where: { state: 'OPEN' },
+      orderBy: { createdAt: 'asc' },
+      include: { listing: { include: listingInclude } },
+    }),
+  ]);
+  return [
+    ...pending.map((l) => ({ kind: 'PENDING' as const, listing: toPublicListing(l) })),
+    ...openReviews.map((r) => ({
+      kind: 'REVIEW' as const,
+      listing: toPublicListing(r.listing),
+      review: { id: r.id, reason: r.reason, createdAt: r.createdAt.toISOString() },
+    })),
+  ];
+}
+
+export async function clearReview(id: string, actor: Actor): Promise<void> {
+  await prisma.moderationReview.update({
+    where: { id },
+    data: { state: 'CLEARED', reviewedAt: new Date(), reviewedBy: actor.id },
+  });
+}
+
+// Routes through the EXISTING rejectListing/suspendListing — that's the feedback loop into the
+// trust gate (resolveInitialStatus's clean-record check already reads REJECTED/SUSPENDED
+// listings), no new trust logic needed here.
+export async function actionReview(
+  id: string,
+  action: 'reject' | 'suspend',
+  input: unknown,
+  actor: Actor,
+): Promise<PublicListing> {
+  const review = await prisma.moderationReview.findUnique({ where: { id } });
+  if (!review) throw AppError.notFound('Review not found');
+
+  const listing =
+    action === 'reject'
+      ? await rejectListing(review.listingId, input, actor)
+      : await suspendListing(review.listingId, input, actor);
+
+  await prisma.moderationReview.update({
+    where: { id },
+    data: { state: 'ACTIONED', reviewedAt: new Date(), reviewedBy: actor.id, outcome: action },
+  });
+  return listing;
 }
 
 export async function adminDeleteListing(id: string, actor: Actor): Promise<void> {

@@ -48,6 +48,35 @@ adminListingsRouter.post(
   }),
 );
 
+// GET /api/v1/admin/listings/review-queue — PENDING listings + OPEN post-publish reviews.
+adminListingsRouter.get(
+  '/review-queue',
+  asyncHandler(async (_req, res) => {
+    res.json({ items: await moderation.listReviewQueue() });
+  }),
+);
+
+adminListingsRouter.post(
+  '/reviews/:reviewId/clear',
+  asyncHandler(async (req, res) => {
+    await moderation.clearReview(param(req, 'reviewId'), actorFrom(req));
+    res.status(204).end();
+  }),
+);
+
+adminListingsRouter.post(
+  '/reviews/:reviewId/action',
+  asyncHandler(async (req, res) => {
+    const listing = await moderation.actionReview(
+      param(req, 'reviewId'),
+      req.body.action,
+      req.body,
+      actorFrom(req),
+    );
+    res.json({ listing });
+  }),
+);
+
 adminListingsRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {

@@ -48,6 +48,13 @@ const envSchema = z.object({
 
   // Seller trust-tiered auto-approval kill switch (moderation bypass) — off by default.
   AUTO_APPROVE_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+
+  // Post-publish review sample for auto-approved listings — left unparsed-boolean here
+  // (resolved against AUTO_APPROVE_ENABLED below) since its default depends on another field.
+  SPOTCHECK_ENABLED: z.enum(['true', 'false']).optional(),
+  SPOTCHECK_RATE_VERIFIED: z.coerce.number().min(0).max(1).default(0.05),
+  SPOTCHECK_RATE_TRACK_RECORD: z.coerce.number().min(0).max(1).default(0.2),
+  SPOTCHECK_EDIT_FLOOR: z.coerce.number().min(0).max(1).default(0.25),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -68,6 +75,9 @@ export const config = {
   corsOrigins: raw.CORS_ALLOWED_ORIGINS.split(',')
     .map((o) => o.trim())
     .filter(Boolean),
+  // Defaults to AUTO_APPROVE_ENABLED when unset — spot-checking only ever matters
+  // alongside auto-approval, so it should track the same kill switch by default.
+  SPOTCHECK_ENABLED: raw.SPOTCHECK_ENABLED !== undefined ? raw.SPOTCHECK_ENABLED === 'true' : raw.AUTO_APPROVE_ENABLED,
 } as const;
 
 export type AppConfig = typeof config;

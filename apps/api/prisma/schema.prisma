@@ -58,6 +58,18 @@ enum PromotionTier {
   ENTERPRISE
 }
 
+enum ReviewReason {
+  SPOT_CHECK
+  REPORTED
+  MANUAL_FLAG
+}
+
+enum ReviewState {
+  OPEN
+  CLEARED
+  ACTIONED
+}
+
 enum PaymentStatus {
   PENDING
   SUCCESS
@@ -200,6 +212,7 @@ model Listing {
   contactReveals ContactReveal[]
   reviews       Review[]
   priceWatches  PriceWatch[]
+  moderationReviews ModerationReview[]
   isPromoted    Boolean        @default(false)
   promotedUntil DateTime?
   promotionTier   PromotionTier  @default(NONE)
@@ -217,6 +230,25 @@ model Listing {
   @@index([status, categoryId, state, city])
   @@index([status, isPromoted, createdAt])
   @@index([status, createdAt])
+}
+
+// Post-publish review sample for auto-approved listings (spot-check safety net), plus user
+// reports and manual admin flags — one queue, one feedback path into the trust gate via
+// rejectListing/suspendListing (ACTIONED reviews are just REJECTED/SUSPENDED listings).
+model ModerationReview {
+  id         String       @id @default(cuid())
+  listingId  String
+  listing    Listing      @relation(fields: [listingId], references: [id])
+  sellerId   String // denormalised for per-seller probation/metrics queries
+  reason     ReviewReason
+  state      ReviewState  @default(OPEN)
+  createdAt  DateTime     @default(now())
+  reviewedAt DateTime?
+  reviewedBy String?
+  outcome    String? // free-text note on ACTIONED reviews
+
+  @@index([state, createdAt])
+  @@index([sellerId, state])
 }
 
 model ListingImage {

@@ -8,6 +8,7 @@ import {
   LISTING_TTL_DAYS,
   AUTO_APPROVE_MIN_APPROVALS,
   AUTO_APPROVE_CLEAN_WINDOW_DAYS,
+  SPOTCHECK_FIRST_N,
   type ListingQuery,
   type Paginated,
   type PublicListing,
@@ -115,16 +116,22 @@ async function isSellerVerified(ownerId: string): Promise<boolean> {
   return profile?.verification === 'VERIFIED';
 }
 
+export interface InitialStatusResult {
+  status: 'PENDING' | 'APPROVED';
+  autoApproved: boolean;
+}
+const PENDING_RESULT: InitialStatusResult = { status: 'PENDING', autoApproved: false };
+
 // Seller trust-tiered auto-approval — a moderation-bypass policy, gated by
 // config.AUTO_APPROVE_ENABLED. Implements the exact rule from the spec; do not relax.
-export async function resolveInitialStatus(ownerId: string): Promise<'PENDING' | 'APPROVED'> {
-  if (!config.AUTO_APPROVE_ENABLED) return 'PENDING';
+export async function resolveInitialStatus(ownerId: string): Promise<InitialStatusResult> {
+  if (!config.AUTO_APPROVE_ENABLED) return PENDING_RESULT;
 
   const [verified, user] = await Promise.all([
     isSellerVerified(ownerId),
     prisma.user.findUnique({ where: { id: ownerId }, select: { createdAt: true } }),
   ]);
-  if (!user || user.createdAt > new Date(Date.now() - DAY_MS)) return 'PENDING';
+  if (!user || user.createdAt > new Date(Date.now() - DAY_MS)) return PENDING_RESULT;
 
   let trusted = verified;
   if (!trusted) {
@@ -133,7 +140,7 @@ export async function resolveInitialStatus(ownerId: string): Promise<'PENDING' |
     });
     trusted = approvals >= AUTO_APPROVE_MIN_APPROVALS;
   }
-  if (!trusted) return 'PENDING';
+  if (!trusted) return PENDING_RESULT;
 
   const cleanWindowStart = new Date(Date.now() - AUTO_APPROVE_CLEAN_WINDOW_DAYS * DAY_MS);
   const uncleanCount = await prisma.listing.count({
@@ -145,7 +152,37 @@ export async function resolveInitialStatus(ownerId: string): Promise<'PENDING' |
       ],
     },
   });
-  return uncleanCount === 0 ? 'APPROVED' : 'PENDING';
+  return uncleanCount === 0 ? { status: 'APPROVED', autoApproved: true } : PENDING_RESULT;
+}
+
+async function clearedSpotChecks(ownerId: string): Promise<number> {
+  return prisma.moderationReview.count({
+    where: { sellerId: ownerId, reason: 'SPOT_CHECK', state: 'CLEARED' },
+  });
+}
+
+// Post-publish review sample for auto-approved listings — gated by config.SPOTCHECK_ENABLED.
+// `rng` is injectable so tests can assert the exact rate boundary instead of a flaky percentage.
+export async function shouldSpotCheck(
+  ownerId: string,
+  isEdit: boolean,
+  rng: () => number = Math.random,
+): Promise<boolean> {
+  if (!config.SPOTCHECK_ENABLED) return false;
+  // Probation: review everything until the seller has cleared SPOTCHECK_FIRST_N spot-checks.
+  if ((await clearedSpotChecks(ownerId)) < SPOTCHECK_FIRST_N) return true;
+
+  const verified = await isSellerVerified(ownerId);
+  const base = verified ? config.SPOTCHECK_RATE_VERIFIED : config.SPOTCHECK_RATE_TRACK_RECORD;
+  // Edits are the bait-and-switch vector — sample at least the floor regardless of tier.
+  const rate = isEdit ? Math.max(base, config.SPOTCHECK_EDIT_FLOOR) : base;
+  return rng() < rate;
+}
+
+async function createSpotCheck(listingId: string, sellerId: string): Promise<void> {
+  await prisma.moderationReview.create({
+    data: { listingId, sellerId, reason: 'SPOT_CHECK', state: 'OPEN' },
+  });
 }
 
 // Replicates moderation.service.ts's approveListing side effects (minus the admin-approved
@@ -184,7 +221,7 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
   const slug = await generateUniqueSlug(data.city, data.title);
   // Trusted sellers (verified or clean track record) skip the PENDING queue — domain rule 2
   // exception, gated by config.AUTO_APPROVE_ENABLED.
-  const status = await resolveInitialStatus(ownerId);
+  const { status, autoApproved } = await resolveInitialStatus(ownerId);
 
   const listing = await prisma.listing.create({
     data: {
@@ -205,7 +242,11 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
     },
     include: listingInclude,
   });
-  if (status === 'APPROVED') await applyAutoApprove(ownerId, listing);
+  if (autoApproved) {
+    await applyAutoApprove(ownerId, listing);
+    // Post-publish review sample — listing stays APPROVED/visible either way.
+    if (await shouldSpotCheck(ownerId, false)) await createSpotCheck(listing.id, ownerId);
+  }
   return toPublicListing(listing);
 }
 
@@ -355,6 +396,8 @@ export async function updateListing(
   if (editStatus === 'APPROVED') {
     // applyAutoApprove enqueues the search sync itself — don't double-enqueue.
     await applyAutoApprove(existing.ownerId, listing);
+    // Post-publish review sample — listing stays APPROVED/visible either way.
+    if (await shouldSpotCheck(existing.ownerId, true)) await createSpotCheck(id, existing.ownerId);
   } else if (hasChanges) {
     // Edit re-pends (or no-op) → drop from search until re-approved.
     await enqueueListingSync(id);
