@@ -35,7 +35,9 @@ export async function runExpirySweep(): Promise<ExpirySweepResult> {
     await Promise.all(
       expiring.flatMap((l) => [
         notify(l.ownerId, 'listing.expired', { listingId: l.id, slug: l.slug }),
-        enqueueListingSync(l.id), // drop from search
+        // Cosmetic cleanup now, not a correctness dependency — search.service.ts's
+        // `expiresAt > now` filter already keeps expired docs out of results read-time.
+        enqueueListingSync(l.id),
       ]),
     );
   }

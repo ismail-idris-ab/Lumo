@@ -30,6 +30,7 @@ export interface ListingDoc {
   promotionTier: PromotionTier;
   tierWeight: number;
   promotedUntil: number | null;
+  expiresAt: number;
   createdAt: number;
   primaryImage: string | null;
   status: ListingStatus;
@@ -77,6 +78,7 @@ export function buildListingDoc(l: HydratedListing): ListingDoc {
     promotionTier: tier,
     tierWeight: promoted ? 1 : 0,
     promotedUntil: l.promotedUntil ? l.promotedUntil.getTime() : null,
+    expiresAt: l.expiresAt.getTime(),
     createdAt: l.createdAt.getTime(),
     primaryImage: primary?.url ?? null,
     status: l.status,
@@ -101,7 +103,10 @@ const RANKING_RULES = [
 ];
 
 const SEARCHABLE = ['title', 'description', 'categoryName', 'categorySlug', 'state', 'city', 'area'];
-const FILTERABLE = ['categorySlug', 'state', 'city', 'area', 'condition', 'priceKobo', 'status', 'promotionTier', 'tierWeight'];
+// Exported so the read-time expiry filter's prerequisite (expiresAt registered here) is
+// directly testable — adding the query filter without this makes every Meili search throw
+// on an unknown filter field (silently falls back to Postgres via the try/catch).
+export const FILTERABLE = ['categorySlug', 'state', 'city', 'area', 'condition', 'priceKobo', 'status', 'promotionTier', 'tierWeight', 'expiresAt'];
 const SORTABLE = ['createdAt', 'priceKobo', 'tierWeight'];
 
 export async function ensureSearchIndex(): Promise<void> {

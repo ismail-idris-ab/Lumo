@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildListingDoc } from './search';
+import { buildListingDoc, FILTERABLE } from './search';
 import type { HydratedListing } from '../services/listing.service';
 
 // tierWeight:desc in RANKING_RULES only does anything if buildListingDoc derives a non-zero
@@ -7,7 +7,7 @@ import type { HydratedListing } from '../services/listing.service';
 // anywhere (dormant, reserved for a future multi-tier feature), so tierWeight must come from
 // isPromoted + promotedUntil instead.
 
-function fixture(overrides: Partial<{ isPromoted: boolean; promotedUntil: Date | null }>): HydratedListing {
+function fixture(overrides: Partial<{ isPromoted: boolean; promotedUntil: Date | null; expiresAt: Date }>): HydratedListing {
   return {
     id: 'l1',
     slug: 'lagos-test-item-ab12cd',
@@ -70,5 +70,17 @@ describe('buildListingDoc — promotion derivation', () => {
     );
     expect(doc.tierWeight).toBe(0);
     expect(doc.isPromoted).toBe(false);
+  });
+});
+
+describe('buildListingDoc — expiresAt', () => {
+  it('emits expiresAt as the listing.expiresAt epoch ms, for the read-time expiry filter', () => {
+    const expiresAt = new Date(Date.now() + 15 * 86_400_000);
+    const doc = buildListingDoc(fixture({ expiresAt }));
+    expect(doc.expiresAt).toBe(expiresAt.getTime());
+  });
+
+  it("registers 'expiresAt' as filterable so the read-time expiry filter doesn't throw", () => {
+    expect(FILTERABLE).toContain('expiresAt');
   });
 });

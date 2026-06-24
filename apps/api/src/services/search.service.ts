@@ -64,6 +64,9 @@ const quote = (v: string) => `"${v.replace(/"/g, '\\"')}"`;
 
 async function meiliSearch(q: ListingQuery): Promise<Paginated<SearchListing>> {
   const filters: string[] = ['status = "APPROVED"'];
+  // Read-time expiry guard: don't rely solely on the sweep re-syncing in time — an unquoted
+  // numeric clause, computed per request so it's always "now" (registered in FILTERABLE).
+  filters.push(`expiresAt > ${Date.now()}`);
   if (q.categorySlug) filters.push(`categorySlug = ${quote(q.categorySlug)}`);
   if (q.state) filters.push(`state = ${quote(q.state)}`);
   if (q.city) filters.push(`city = ${quote(q.city)}`);
