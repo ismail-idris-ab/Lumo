@@ -525,7 +525,7 @@ export function ListingForm({ listing }: { listing?: PublicListing }) {
               View my ads
             </Button>
             {!editing && (
-              <Button variant="outline" onClick={() => router.push('/dashboard/listings/new')}>
+              <Button variant="outline" onClick={() => router.push('/new')}>
                 Post another ad
               </Button>
             )}

@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 const NAV = [
   { href: '/dashboard',              label: 'Overview',      icon: '▦' },
   { href: '/dashboard/listings',     label: 'My listings',   icon: '☰' },
-  { href: '/dashboard/listings/new', label: 'Post ad',       icon: '+', highlight: true },
+  { href: '/new', label: 'Post ad',       icon: '+', highlight: true },
   { href: '/dashboard/favorites',    label: 'Favorites',     icon: '♡' },
   { href: '/dashboard/messages',     label: 'Messages',      icon: '✉' },
   { href: '/dashboard/plans',        label: 'Plans',         icon: '⚡' },

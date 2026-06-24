@@ -44,7 +44,7 @@ export default function MyListingsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">My listings</h1>
-        <Link href="/dashboard/listings/new" className={cn(buttonVariants({ size: 'sm' }))}>
+        <Link href="/new" className={cn(buttonVariants({ size: 'sm' }))}>
           Post ad
         </Link>
       </div>

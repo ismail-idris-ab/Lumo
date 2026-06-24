@@ -53,7 +53,7 @@ export function BottomNav() {
       })}
 
       <Link
-        href="/dashboard/listings/new"
+        href="/new"
         aria-label="Post ad"
         className="relative flex flex-col items-center justify-end pb-1.5"
       >

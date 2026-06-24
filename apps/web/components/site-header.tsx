@@ -36,7 +36,7 @@ export function SiteHeader() {
               <NotificationBell />
               <span className="hidden sm:inline-flex">
                 <Link
-                  href="/dashboard/listings/new"
+                  href="/new"
                   className={cn(buttonVariants({ size: 'sm' }), 'mr-1')}
                 >
                   Post ad
