@@ -1,11 +1,13 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 import type { MessageDTO } from '@lumo/shared';
 import { config } from '../config/env';
 import { logger } from './logger';
 import { prisma } from './prisma';
 import { verifyAccessToken } from './tokens';
 import { emailUser } from './email';
+import { createRedisConnection } from './redis';
 import { sendMessage } from '../services/chat.service';
 
 let io: Server | null = null;
@@ -53,6 +55,16 @@ export function emitToUser(userId: string, event: string, payload: unknown): voi
 
 export function initSocket(server: HttpServer): Server {
   io = new Server(server, { cors: { origin: config.corsOrigins, credentials: true } });
+
+  // Cluster-aware io.to(...).emit + fetchSockets() past one API instance — without this,
+  // cross-instance messages never deliver and online recipients on other instances look
+  // offline (spurious "is offline" emails from deliverOffline). Pub and sub MUST be two
+  // distinct connections — the subscriber enters subscriber mode and can't be shared, so
+  // this calls createRedisConnection() twice rather than reusing the shared getRedis()
+  // singleton or the BullMQ worker connection.
+  const pubClient = createRedisConnection();
+  const subClient = createRedisConnection();
+  io.adapter(createAdapter(pubClient, subClient));
 
   // JWT auth on connect (TRD §16).
   io.use((socket, next) => {
