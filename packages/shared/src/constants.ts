@@ -38,6 +38,11 @@ export const AUTO_APPROVE_CLEAN_WINDOW_DAYS = 30;
 export const SPOTCHECK_FIRST_N = 3;
 export const SPOTCHECK_AUTOCLEAR_DAYS = 7;
 
+// Location x category SEO landing pages — inventory floor for indexability (thin-content
+// guard) and the static-prerender slice size.
+export const LANDING_MIN_LISTINGS = 3;
+export const LANDING_TOP_N_PRERENDER = 200;
+
 // Monetisation fixed prices (kobo) — PRD §15. Packages/plans are seeded; these are flat-rate.
 export const FEATURED_PRICE_KOBO = 1_000_000; // ₦10,000 / month
 export const FEATURED_DAYS = 30;

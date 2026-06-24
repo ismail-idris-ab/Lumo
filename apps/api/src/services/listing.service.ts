@@ -13,6 +13,7 @@ import {
   type Paginated,
   type PublicListing,
   type Role,
+  type LandingCombo,
 } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
@@ -352,6 +353,29 @@ export async function listSitemapListings(
     skip,
     take,
   });
+}
+
+// Category x state combos with live inventory — drives the SEO landing pages and their
+// sitemap chunk. Reuses SITEMAP_WHERE so a landing page can never list inventory that 404s.
+export async function listLandingCombos(min: number): Promise<LandingCombo[]> {
+  const groups = await prisma.listing.groupBy({
+    by: ['categoryId', 'state'],
+    where: SITEMAP_WHERE,
+    _count: { _all: true },
+  });
+  const eligible = groups.filter((g) => g._count._all >= min);
+  if (eligible.length === 0) return [];
+
+  const categories = await prisma.category.findMany({
+    where: { id: { in: [...new Set(eligible.map((g) => g.categoryId))] } },
+    select: { id: true, slug: true },
+  });
+  const slugById = new Map(categories.map((c) => [c.id, c.slug]));
+
+  return eligible
+    .map((g) => ({ categorySlug: slugById.get(g.categoryId), state: g.state, count: g._count._all }))
+    .filter((c): c is LandingCombo => !!c.categorySlug)
+    .sort((a, b) => b.count - a.count);
 }
 
 const EDITABLE_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED'] as const;

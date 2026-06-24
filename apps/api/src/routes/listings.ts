@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { SITEMAP_CHUNK_SIZE } from '@lumo/shared';
+import { SITEMAP_CHUNK_SIZE, LANDING_MIN_LISTINGS } from '@lumo/shared';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate } from '../middleware/auth';
 import { rateLimit } from '../middleware/ratelimit';
@@ -36,6 +36,16 @@ listingsRouter.get(
     const limit = Math.min(SITEMAP_CHUNK_SIZE, Math.max(1, Number(req.query.limit ?? SITEMAP_CHUNK_SIZE)));
     const items = await listingService.listSitemapListings(page * limit, limit);
     res.json({ items });
+  }),
+);
+
+// GET /api/v1/listings/landing-pages?min= — category x state combos with >= min live
+// listings (SEO landing pages + their sitemap chunk). Must precede /:slug.
+listingsRouter.get(
+  '/landing-pages',
+  asyncHandler(async (req, res) => {
+    const min = Math.max(0, Number(req.query.min ?? LANDING_MIN_LISTINGS));
+    res.json({ items: await listingService.listLandingCombos(min) });
   }),
 );
 

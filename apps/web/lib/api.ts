@@ -1,4 +1,4 @@
-import { SITEMAP_CHUNK_SIZE, type CategorySummary, type Paginated, type PublicListing, type SearchListing, type SellerReviewDTO, type SellerPublicProfile } from '@lumo/shared';
+import { SITEMAP_CHUNK_SIZE, LANDING_MIN_LISTINGS, type CategorySummary, type LandingCombo, type Paginated, type PublicListing, type SearchListing, type SellerReviewDTO, type SellerPublicProfile } from '@lumo/shared';
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
@@ -87,5 +87,10 @@ export async function getSitemapChunk(page: number): Promise<{ slug: string; upd
     `/listings/sitemap?page=${page}&limit=${SITEMAP_CHUNK_SIZE}`,
     3600,
   );
+  return data?.items ?? [];
+}
+
+export async function getLandingCombos(min: number = LANDING_MIN_LISTINGS): Promise<LandingCombo[]> {
+  const data = await get<{ items: LandingCombo[] }>(`/listings/landing-pages?min=${min}`, 3600);
   return data?.items ?? [];
 }

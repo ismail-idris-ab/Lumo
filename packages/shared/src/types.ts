@@ -232,3 +232,10 @@ export interface SearchListing {
   sellerRating: number | null;
   sellerYears: number;
 }
+
+// Category x state combo with live inventory — drives SEO landing pages + their sitemap chunk.
+export interface LandingCombo {
+  categorySlug: string;
+  state: string;
+  count: number;
+}

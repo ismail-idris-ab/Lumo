@@ -11,7 +11,9 @@ const {
   listingCreate,
   listingUpdate,
   listingFindUnique,
+  listingGroupBy,
   categoryFindUnique,
+  categoryFindMany,
   userUpdateMany,
   moderationReviewCount,
   moderationReviewCreate,
@@ -27,7 +29,9 @@ const {
   listingCreate: vi.fn(),
   listingUpdate: vi.fn(),
   listingFindUnique: vi.fn(),
+  listingGroupBy: vi.fn(),
   categoryFindUnique: vi.fn(),
+  categoryFindMany: vi.fn(),
   userUpdateMany: vi.fn(),
   moderationReviewCount: vi.fn(),
   moderationReviewCreate: vi.fn(),
@@ -53,8 +57,9 @@ vi.mock('../lib/prisma', () => ({
       create: listingCreate,
       update: listingUpdate,
       findUnique: listingFindUnique,
+      groupBy: listingGroupBy,
     },
-    category: { findUnique: categoryFindUnique },
+    category: { findUnique: categoryFindUnique, findMany: categoryFindMany },
     moderationReview: { count: moderationReviewCount, create: moderationReviewCreate },
   },
 }));
@@ -65,7 +70,7 @@ vi.mock('../lib/email', () => ({ sendEmail: vi.fn() }));
 vi.mock('../lib/queue', () => ({ enqueueListingSync, enqueueCheckSavedSearches }));
 vi.mock('../middleware/rbac', () => ({ assertOwnership: vi.fn() }));
 
-import { resolveInitialStatus, shouldSpotCheck, createListing, updateListing } from './listing.service';
+import { resolveInitialStatus, shouldSpotCheck, createListing, updateListing, listLandingCombos } from './listing.service';
 
 const DAY_MS = 86_400_000;
 const OLD_ENOUGH = { createdAt: new Date(Date.now() - 10 * DAY_MS) };
@@ -337,5 +342,38 @@ describe('updateListing verified-edit auto-approve', () => {
     expect(moderationReviewCreate).toHaveBeenCalledWith({
       data: { listingId: 'l1', sellerId: 'u1', reason: 'SPOT_CHECK', state: 'OPEN' },
     });
+  });
+});
+
+describe('listLandingCombos', () => {
+  it('drops groups below min, maps categoryId -> categorySlug, sorts by count desc', async () => {
+    listingGroupBy.mockResolvedValue([
+      { categoryId: 'cat_phones', state: 'Lagos', _count: { _all: 10 } },
+      { categoryId: 'cat_cars', state: 'Lagos', _count: { _all: 2 } }, // below min, dropped
+      { categoryId: 'cat_phones', state: 'Abuja', _count: { _all: 5 } },
+    ]);
+    categoryFindMany.mockResolvedValue([
+      { id: 'cat_phones', slug: 'phones' },
+      { id: 'cat_cars', slug: 'cars' },
+    ]);
+
+    const combos = await listLandingCombos(3);
+
+    expect(combos).toEqual([
+      { categorySlug: 'phones', state: 'Lagos', count: 10 },
+      { categorySlug: 'phones', state: 'Abuja', count: 5 },
+    ]);
+    // Only the surviving categoryIds get looked up.
+    expect(categoryFindMany).toHaveBeenCalledWith({
+      where: { id: { in: ['cat_phones'] } },
+      select: { id: true, slug: true },
+    });
+  });
+
+  it('returns empty without querying categories when nothing meets the floor', async () => {
+    listingGroupBy.mockResolvedValue([{ categoryId: 'cat_cars', state: 'Lagos', _count: { _all: 1 } }]);
+
+    await expect(listLandingCombos(3)).resolves.toEqual([]);
+    expect(categoryFindMany).not.toHaveBeenCalled();
   });
 });

@@ -63,6 +63,19 @@ export function breadcrumbJsonLd(items: { name: string; url: string }[]) {
   };
 }
 
+export function itemListJsonLd(items: { name: string; url: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      url: `${SITE_URL}${it.url}`,
+    })),
+  };
+}
+
 // Inline JSON-LD <script> props (used with dangerouslySetInnerHTML).
 export function jsonLdScript(data: unknown) {
   return { __html: JSON.stringify(data) };
