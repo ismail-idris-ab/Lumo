@@ -391,6 +391,9 @@ model Review {
   createdAt DateTime @default(now())
 
   @@index([sellerId])
+  // listingId is nullable (SetNull on listing delete keeps the review) — Postgres treats NULLs
+  // as distinct, so deleted-listing reviews stay unconstrained, which is intended.
+  @@unique([listingId, authorId])
 }
 
 model Notification {

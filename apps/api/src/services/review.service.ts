@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 import { z } from 'zod';
@@ -20,19 +21,38 @@ export async function createReview(
   if (!listing) throw AppError.notFound('Listing not found');
   if (listing.ownerId === authorId) throw AppError.forbidden('Cannot review your own listing');
 
+  // Chat-gate (decided policy): reviewing requires proof of contact — a chat where this
+  // user is the buyer and the listing owner is the seller, for THIS listing. No sold-to-buyer
+  // flow here; that's a separate future feature.
+  const contacted = await prisma.chat.findFirst({
+    where: { listingId, buyerId: authorId, sellerId: listing.ownerId },
+    select: { id: true },
+  });
+  if (!contacted) throw AppError.forbidden('You can only review sellers you have contacted');
+
+  // Friendlier pre-check; the @@unique([listingId, authorId]) constraint below is the real
+  // guard against concurrent/duplicate submits racing this check.
   const existing = await prisma.review.findFirst({ where: { listingId, authorId } });
   if (existing) throw AppError.conflict('You already reviewed this listing');
 
-  const review = await prisma.review.create({
-    data: {
-      listingId,
-      sellerId: listing.ownerId,
-      authorId,
-      rating: data.rating,
-      body: data.body ?? null,
-    },
-    include: { author: { select: { name: true, avatarUrl: true } } },
-  });
+  let review;
+  try {
+    review = await prisma.review.create({
+      data: {
+        listingId,
+        sellerId: listing.ownerId,
+        authorId,
+        rating: data.rating,
+        body: data.body ?? null,
+      },
+      include: { author: { select: { name: true, avatarUrl: true } } },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw AppError.conflict('You already reviewed this listing');
+    }
+    throw err;
+  }
 
   const agg = await prisma.review.aggregate({
     where: { sellerId: listing.ownerId },
