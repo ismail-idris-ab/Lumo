@@ -215,6 +215,7 @@ export interface SearchListing {
   id: string;
   slug: string;
   title: string;
+  description: string;
   priceKobo: number;
   condition: Condition;
   state: string;

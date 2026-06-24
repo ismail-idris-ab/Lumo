@@ -97,6 +97,7 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
     id: l.id,
     slug: l.slug,
     title: l.title,
+    description: l.description,
     priceKobo: l.priceKobo,
     condition: l.condition,
     state: l.state,

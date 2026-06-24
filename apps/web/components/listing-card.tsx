@@ -89,6 +89,9 @@ export function ListingCard({ item }: { item: SearchListing }) {
         <div className="flex flex-col gap-1 p-3">
           <p className="text-base font-bold text-emerald-700">{formatNaira(item.priceKobo)}</p>
           <h3 className="line-clamp-2 text-sm font-medium leading-snug text-slate-800">{item.title}</h3>
+          {item.description && (
+            <p className="line-clamp-2 text-xs leading-snug text-slate-500">{item.description}</p>
+          )}
           <p className="flex items-center gap-1 text-xs text-slate-500">
             📍 {locationLabel(item.state, item.city, item.area)}
           </p>
@@ -146,6 +149,9 @@ function ListingRow({ item }: { item: SearchListing }) {
       <div className="flex flex-1 flex-col gap-1 p-3">
         <p className="text-base font-bold text-emerald-700">{formatNaira(item.priceKobo)}</p>
         <h3 className="text-sm font-medium leading-snug text-slate-800">{item.title}</h3>
+        {item.description && (
+          <p className="line-clamp-3 text-xs leading-snug text-slate-500">{item.description}</p>
+        )}
         <p className="flex items-center gap-1 text-xs text-slate-500">
           📍 {locationLabel(item.state, item.city, item.area)}
         </p>
