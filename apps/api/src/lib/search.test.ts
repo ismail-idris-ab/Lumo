@@ -1,6 +1,24 @@
-import { describe, it, expect } from 'vitest';
-import { buildListingDoc, FILTERABLE } from './search';
+import { describe, it, expect, vi } from 'vitest';
 import type { HydratedListing } from '../services/listing.service';
+
+// ensureSearchIndex's pagination.maxTotalHits is what raises the deep-pagination cap — mock
+// the meilisearch client + config so this test exercises the real updateSettings call.
+const { updateSettingsMock, MeiliSearchMock } = vi.hoisted(() => {
+  const updateSettingsMock = vi.fn().mockResolvedValue({ taskUid: 2 });
+  const waitForTaskMock = vi.fn().mockResolvedValue({});
+  const createIndexMock = vi.fn().mockResolvedValue({ taskUid: 1 });
+  const indexMock = vi.fn(() => ({ updateSettings: updateSettingsMock }));
+  // Must be constructible (`new MeiliSearch(...)`) — a plain function, not an arrow.
+  const MeiliSearchMock = vi.fn(function MeiliSearch() {
+    return { createIndex: createIndexMock, waitForTask: waitForTaskMock, index: indexMock };
+  });
+  return { updateSettingsMock, MeiliSearchMock };
+});
+
+vi.mock('meilisearch', () => ({ MeiliSearch: MeiliSearchMock }));
+vi.mock('../config/env', () => ({ config: { SEARCH_HOST: 'https://search.test', SEARCH_API_KEY: 'key' } }));
+
+import { buildListingDoc, ensureSearchIndex, FILTERABLE, MAX_TOTAL_HITS } from './search';
 
 // tierWeight:desc in RANKING_RULES only does anything if buildListingDoc derives a non-zero
 // tierWeight from real, expiry-aware promotion state — promotionTier itself is never written
@@ -82,5 +100,14 @@ describe('buildListingDoc — expiresAt', () => {
 
   it("registers 'expiresAt' as filterable so the read-time expiry filter doesn't throw", () => {
     expect(FILTERABLE).toContain('expiresAt');
+  });
+});
+
+describe('ensureSearchIndex — deep-pagination cap', () => {
+  it('sets pagination.maxTotalHits to MAX_TOTAL_HITS', async () => {
+    await ensureSearchIndex();
+    expect(updateSettingsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ pagination: { maxTotalHits: MAX_TOTAL_HITS } }),
+    );
   });
 });

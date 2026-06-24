@@ -6,7 +6,7 @@ import {
   type SearchListing,
 } from '@lumo/shared';
 import { logger } from '../lib/logger';
-import { getListingsIndex, isSearchConfigured, type ListingDoc } from '../lib/search';
+import { getListingsIndex, isSearchConfigured, MAX_TOTAL_HITS, type ListingDoc } from '../lib/search';
 import { listPublicListings } from './listing.service';
 
 function docToSearchListing(d: ListingDoc): SearchListing {
@@ -82,14 +82,29 @@ async function meiliSearch(q: ListingQuery): Promise<Paginated<SearchListing>> {
         ? ['priceKobo:desc']
         : ['createdAt:desc'];
 
+  // Past Meili's pagination.maxTotalHits (MAX_TOTAL_HITS), the offset itself is unreachable —
+  // return cleanly instead of letting Meili throw into the Postgres fallback.
+  const offset = (q.page - 1) * q.limit;
+  if (offset >= MAX_TOTAL_HITS) {
+    return {
+      items: [],
+      page: q.page,
+      limit: q.limit,
+      total: MAX_TOTAL_HITS,
+      totalPages: Math.ceil(MAX_TOTAL_HITS / q.limit),
+    };
+  }
+  // Clamp the boundary page so it never asks past the cap either.
+  const limit = Math.min(q.limit, MAX_TOTAL_HITS - offset);
+
   const res = await getListingsIndex().search(q.q ?? '', {
     filter: filters,
     sort,
-    limit: q.limit,
-    offset: (q.page - 1) * q.limit,
+    limit,
+    offset,
   });
 
-  const total = res.estimatedTotalHits ?? res.hits.length;
+  const total = Math.min(res.estimatedTotalHits ?? res.hits.length, MAX_TOTAL_HITS);
   return {
     items: res.hits.map(docToSearchListing),
     page: q.page,

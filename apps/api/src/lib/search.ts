@@ -109,6 +109,12 @@ const SEARCHABLE = ['title', 'description', 'categoryName', 'categorySlug', 'sta
 export const FILTERABLE = ['categorySlug', 'state', 'city', 'area', 'condition', 'priceKobo', 'status', 'promotionTier', 'tierWeight', 'expiresAt'];
 const SORTABLE = ['createdAt', 'priceKobo', 'tierWeight'];
 
+// Meili's default maxTotalHits (1000) silently throws past that offset, which the existing
+// try/catch turns into a quiet fallback to Postgres — deep pages switch data sources instead
+// of failing cleanly. Raised here AND clamped against in meiliSearch (search.service.ts) —
+// raising this alone doesn't fix anything past the new cap either.
+export const MAX_TOTAL_HITS = 10_000;
+
 export async function ensureSearchIndex(): Promise<void> {
   const c = getSearchClient();
   try {
@@ -123,6 +129,7 @@ export async function ensureSearchIndex(): Promise<void> {
     filterableAttributes: FILTERABLE,
     sortableAttributes: SORTABLE,
     rankingRules: RANKING_RULES,
+    pagination: { maxTotalHits: MAX_TOTAL_HITS },
   });
   await c.waitForTask(task.taskUid);
 }
