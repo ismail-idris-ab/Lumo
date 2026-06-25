@@ -27,6 +27,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       urlEntry(SITE_URL),
       urlEntry(`${SITE_URL}/search`),
       urlEntry(`${SITE_URL}/safety`),
+      urlEntry(`${SITE_URL}/about`),
+      urlEntry(`${SITE_URL}/careers`),
+      urlEntry(`${SITE_URL}/terms`),
+      urlEntry(`${SITE_URL}/privacy`),
+      urlEntry(`${SITE_URL}/billing-policy`),
+      urlEntry(`${SITE_URL}/candidate-privacy`),
+      urlEntry(`${SITE_URL}/cookie-policy`),
+      urlEntry(`${SITE_URL}/copyright-policy`),
       ...categories.map((c) => urlEntry(`${SITE_URL}/category/${c.slug}`)),
     ];
     return new Response(urlset(entries), { headers: { 'Content-Type': 'application/xml' } });

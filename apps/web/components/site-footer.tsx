@@ -15,7 +15,7 @@ export async function SiteFooter() {
   return (
     <footer className="bg-slate-900 text-slate-300">
       <div className="container space-y-8 py-12">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-8 sm:grid-cols-[1.3fr_1fr_1fr]">
           <div className="space-y-2">
             <Link
               href="/"
@@ -25,12 +25,30 @@ export async function SiteFooter() {
             </Link>
             <p className="max-w-xs text-sm text-slate-400">{SITE_DESCRIPTION}</p>
           </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm" aria-label="Footer">
-            <Link href="/search" className={linkCls}>Browse listings</Link>
-            <Link href="/new" className={linkCls}>Post an ad</Link>
-            <Link href="/register" className={linkCls}>Create account</Link>
-            <Link href="/login" className={linkCls}>Sign in</Link>
-            <Link href="/safety" className={linkCls}>Safety &amp; prohibited items</Link>
+
+          <nav aria-label="Marketplace" className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Marketplace</p>
+            <div className="flex flex-col gap-1.5 text-sm">
+              <Link href="/search" className={linkCls}>Browse listings</Link>
+              <Link href="/new" className={linkCls}>Post an ad</Link>
+              <Link href="/register" className={linkCls}>Create account</Link>
+              <Link href="/login" className={linkCls}>Sign in</Link>
+              <Link href="/safety" className={linkCls}>Safety &amp; prohibited items</Link>
+            </div>
+          </nav>
+
+          <nav aria-label="About us" className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">About us</p>
+            <div className="flex flex-col gap-1.5 text-sm">
+              <Link href="/about" className={linkCls}>About lumo</Link>
+              <Link href="/careers" className={linkCls}>We are hiring!</Link>
+              <Link href="/terms" className={linkCls}>Terms &amp; Conditions</Link>
+              <Link href="/privacy" className={linkCls}>Privacy Policy</Link>
+              <Link href="/billing-policy" className={linkCls}>Billing Policy</Link>
+              <Link href="/candidate-privacy" className={linkCls}>Candidate Privacy Policy</Link>
+              <Link href="/cookie-policy" className={linkCls}>Cookie Policy</Link>
+              <Link href="/copyright-policy" className={linkCls}>Copyright Infringement Policy</Link>
+            </div>
           </nav>
         </div>
 
