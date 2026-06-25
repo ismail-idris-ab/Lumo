@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bucketRevenueByDay } from './analytics.service';
+import { bucketRevenueByDay, aggregateModeratorActivity } from './analytics.service';
 
 // Fixed "now": 2026-06-10T12:00:00Z → WAT day 2026-06-10.
 const NOW = new Date('2026-06-10T12:00:00Z');
@@ -52,5 +52,57 @@ describe('bucketRevenueByDay', () => {
     const windowStartDay = series.find((p) => p.date === '2026-06-04');
     expect(windowStartDay?.totalKobo).toBe(1000);
     expect(series.some((p) => p.date === '2026-06-03')).toBe(false);
+  });
+});
+
+describe('aggregateModeratorActivity', () => {
+  const users = [
+    { id: 'mod-1', name: 'Amaka', email: 'amaka@lumo.test' },
+    { id: 'mod-2', name: 'Bayo', email: 'bayo@lumo.test' },
+  ];
+
+  it('sums total actions per actor and keeps the per-action breakdown', () => {
+    const result = aggregateModeratorActivity(
+      [
+        { actorId: 'mod-1', action: 'listing.approve', count: 5 },
+        { actorId: 'mod-1', action: 'listing.reject', count: 2 },
+        { actorId: 'mod-2', action: 'report.resolve', count: 3 },
+      ],
+      users,
+    );
+
+    const amaka = result.find((m) => m.actorId === 'mod-1');
+    expect(amaka).toEqual({
+      actorId: 'mod-1',
+      name: 'Amaka',
+      email: 'amaka@lumo.test',
+      totalActions: 7,
+      byAction: { 'listing.approve': 5, 'listing.reject': 2 },
+    });
+  });
+
+  it('sorts by total actions descending', () => {
+    const result = aggregateModeratorActivity(
+      [
+        { actorId: 'mod-1', action: 'listing.approve', count: 1 },
+        { actorId: 'mod-2', action: 'report.resolve', count: 10 },
+      ],
+      users,
+    );
+    expect(result.map((m) => m.actorId)).toEqual(['mod-2', 'mod-1']);
+  });
+
+  it('falls back to "Unknown" for an actor with no matching user row', () => {
+    const result = aggregateModeratorActivity(
+      [{ actorId: 'ghost', action: 'listing.approve', count: 1 }],
+      users,
+    );
+    expect(result).toEqual([
+      { actorId: 'ghost', name: 'Unknown', email: '', totalActions: 1, byAction: { 'listing.approve': 1 } },
+    ]);
+  });
+
+  it('returns an empty array when there are no rows', () => {
+    expect(aggregateModeratorActivity([], users)).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
-import type { ListingStatus, RevenuePoint, RevenueSeries } from '@lumo/shared';
+import type { ListingStatus, ModeratorActivity, RevenuePoint, RevenueSeries } from '@lumo/shared';
+import { STAFF_AUDIT_ACTIONS } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 
 export interface SellerAnalytics {
@@ -180,4 +181,62 @@ export async function getRevenueSeries(days: number): Promise<RevenueSeries> {
     select: { createdAt: true, amountKobo: true },
   });
   return { days, series: bucketRevenueByDay(payments, days, now) };
+}
+
+export interface AuditActionCount {
+  actorId: string;
+  action: string;
+  count: number;
+}
+
+// Pure aggregation — groups raw (actorId, action) rows into per-actor totals + breakdowns,
+// joined against the actor's name/email. Unit-testable without touching the database.
+export function aggregateModeratorActivity(
+  rows: AuditActionCount[],
+  users: { id: string; name: string; email: string }[],
+): ModeratorActivity[] {
+  const byActor = new Map<string, Record<string, number>>();
+  for (const row of rows) {
+    const byAction = byActor.get(row.actorId) ?? {};
+    byAction[row.action] = row.count;
+    byActor.set(row.actorId, byAction);
+  }
+
+  const userMap = new Map(users.map((u) => [u.id, u]));
+
+  return [...byActor.entries()]
+    .map(([actorId, byAction]) => {
+      const user = userMap.get(actorId);
+      return {
+        actorId,
+        name: user?.name ?? 'Unknown',
+        email: user?.email ?? '',
+        totalActions: Object.values(byAction).reduce((a, b) => a + b, 0),
+        byAction,
+      };
+    })
+    .sort((a, b) => b.totalActions - a.totalActions);
+}
+
+// Per-moderator action counts in [from, to] — the basis for paying staff by work done.
+// Only counts STAFF_AUDIT_ACTIONS (excludes system-generated audit rows like auto-approve).
+export async function getModeratorActivity(from: Date, to: Date): Promise<ModeratorActivity[]> {
+  const grouped = await prisma.auditLog.groupBy({
+    by: ['actorId', 'action'],
+    where: { action: { in: [...STAFF_AUDIT_ACTIONS] }, createdAt: { gte: from, lte: to } },
+    _count: { _all: true },
+  });
+  const rows: AuditActionCount[] = grouped.map((g) => ({
+    actorId: g.actorId,
+    action: g.action,
+    count: g._count._all,
+  }));
+
+  const actorIds = [...new Set(rows.map((r) => r.actorId))];
+  const users = await prisma.user.findMany({
+    where: { id: { in: actorIds } },
+    select: { id: true, name: true, email: true },
+  });
+
+  return aggregateModeratorActivity(rows, users);
 }

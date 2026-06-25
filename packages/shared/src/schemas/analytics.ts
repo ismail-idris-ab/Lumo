@@ -21,3 +21,19 @@ export interface RevenueSeries {
   days: number;
   series: RevenuePoint[]; // ascending by date, zero-filled, length === days
 }
+
+// Staff activity range for the moderator pay-tracking report. Omitted → last 30 days.
+export const adminModeratorActivityQuerySchema = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+});
+export type AdminModeratorActivityQuery = z.infer<typeof adminModeratorActivityQuerySchema>;
+
+// One moderator's action counts over a date range — used to calculate staff pay by work done.
+export interface ModeratorActivity {
+  actorId: string;
+  name: string;
+  email: string;
+  totalActions: number;
+  byAction: Record<string, number>;
+}

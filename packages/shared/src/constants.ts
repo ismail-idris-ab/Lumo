@@ -47,3 +47,18 @@ export const LANDING_TOP_N_PRERENDER = 200;
 export const FEATURED_PRICE_KOBO = 1_000_000; // ₦10,000 / month
 export const FEATURED_DAYS = 30;
 export const VERIFICATION_FEE_KOBO = 500_000; // ₦5,000
+
+// AuditLog `action` values written by a human moderator/admin (for staff activity tracking).
+// Excludes system-generated actions (listing.auto_approve, listing.auto_flag, payment.success)
+// and rare catalog setup (category.*) — those aren't per-item moderation work.
+export const STAFF_AUDIT_ACTIONS = [
+  'listing.approve',
+  'listing.reject',
+  'listing.suspend',
+  'listing.request_changes',
+  'listing.flag',
+  'listing.admin_delete',
+  'report.resolve',
+  'verification.approve',
+  'verification.reject',
+] as const;
