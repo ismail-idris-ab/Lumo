@@ -4,6 +4,7 @@ import './globals.css';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, jsonLdScript, organizationJsonLd } from '@/lib/seo';
 import { Providers } from '@/components/providers';
 import { SiteHeader } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
 import { BottomNav } from '@/components/bottom-nav';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
@@ -38,18 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <SiteHeader />
           <div className="flex-1">{children}</div>
-          <footer className="border-t py-6">
-            <div className="container flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
-              <nav className="flex gap-4">
-                <a href="/safety" className="hover:underline">
-                  Safety &amp; prohibited items
-                </a>
-              </nav>
-              <p>
-                © {new Date().getFullYear()} {SITE_NAME} — {SITE_DESCRIPTION}
-              </p>
-            </div>
-          </footer>
+          <SiteFooter />
           <BottomNav />
         </Providers>
       </body>
