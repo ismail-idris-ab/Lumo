@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, ApiError } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
+import { Button } from '@/components/ui/button';
 
 const RANGES = [7, 30, 90] as const;
 type Range = (typeof RANGES)[number];
@@ -33,7 +35,141 @@ interface ModeratorActivityResponse {
   moderators: ModeratorActivity[];
 }
 
+interface StaffMember {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+}
+
+const STAFF_ROLES = ['ADMIN', 'SUPER_ADMIN'] as const;
+
+function ManageStaff() {
+  const qc = useQueryClient();
+  const [email, setEmail] = useState('');
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const { data: list } = useQuery({
+    queryKey: ['admin-staff-list'],
+    queryFn: () => api.get<{ staff: StaffMember[] }>('/admin/staff'),
+  });
+
+  const search = useMutation({
+    mutationFn: (value: string) => api.get<{ user: StaffMember | null }>(`/admin/staff/search?email=${encodeURIComponent(value)}`),
+    onSuccess: (res) => {
+      if (!res?.user) setSearchError('No account with that email — they need to register first.');
+      else setSearchError(null);
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['admin-staff-list'] });
+    void search.mutate(email);
+  };
+
+  const grant = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) => api.post(`/admin/staff/${id}/grant`, { role }),
+    onSuccess: invalidate,
+  });
+  const revoke = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) => api.post(`/admin/staff/${id}/revoke`, { role }),
+    onSuccess: invalidate,
+    onError: (err) => setSearchError(err instanceof ApiError ? err.message : 'Could not revoke role.'),
+  });
+
+  const found = search.data?.user;
+  const staff = list?.staff ?? [];
+
+  return (
+    <section className="space-y-4 rounded-lg border p-4">
+      <div>
+        <h2 className="text-lg font-semibold">Manage staff</h2>
+        <p className="text-sm text-muted-foreground">
+          Promote a registered user to a moderator role, or remove one.
+        </p>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSearchError(null);
+          search.mutate(email);
+        }}
+        className="flex gap-2"
+      >
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="staff@example.com"
+          className="w-full max-w-xs rounded-md border px-3 py-1.5 text-sm"
+        />
+        <Button type="submit" size="sm" variant="outline" disabled={search.isPending}>
+          Find
+        </Button>
+      </form>
+
+      {searchError && <p className="text-sm text-destructive">{searchError}</p>}
+
+      {found && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-3">
+          <div className="min-w-0">
+            <div className="font-medium">{found.name}</div>
+            <div className="text-xs text-muted-foreground">{found.email}</div>
+          </div>
+          <div className="ml-auto flex gap-2">
+            {STAFF_ROLES.map((role) =>
+              found.roles.includes(role) ? (
+                <Button
+                  key={role}
+                  size="sm"
+                  variant="outline"
+                  disabled={revoke.isPending}
+                  onClick={() => revoke.mutate({ id: found.id, role })}
+                >
+                  Revoke {role}
+                </Button>
+              ) : (
+                <Button
+                  key={role}
+                  size="sm"
+                  disabled={grant.isPending}
+                  onClick={() => grant.mutate({ id: found.id, role })}
+                >
+                  Grant {role}
+                </Button>
+              ),
+            )}
+          </div>
+        </div>
+      )}
+
+      {staff.length > 0 && (
+        <ul className="divide-y rounded-md border text-sm">
+          {staff.map((s) => (
+            <li key={s.id} className="flex items-center justify-between px-3 py-2">
+              <div>
+                <div className="font-medium">{s.name}</div>
+                <div className="text-xs text-muted-foreground">{s.email}</div>
+              </div>
+              <div className="flex gap-1.5">
+                {s.roles.filter((r) => STAFF_ROLES.includes(r as (typeof STAFF_ROLES)[number])).map((r) => (
+                  <span key={r} className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium">
+                    {r}
+                  </span>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export default function AdminStaffPage() {
+  const { user } = useAuth();
   const [days, setDays] = useState<Range>(30);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -51,6 +187,8 @@ export default function AdminStaffPage() {
 
   return (
     <div className="space-y-6">
+      {user?.roles.includes('SUPER_ADMIN') && <ManageStaff />}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Staff activity</h1>
