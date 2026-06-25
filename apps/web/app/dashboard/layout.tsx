@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 const NAV = [
   { href: '/dashboard',              label: 'Overview',      icon: '▦' },
   { href: '/dashboard/listings',     label: 'My listings',   icon: '☰' },
-  { href: '/new', label: 'Post ad',       icon: '+', highlight: true },
   { href: '/dashboard/favorites',    label: 'Favorites',     icon: '♡' },
   { href: '/dashboard/messages',     label: 'Messages',      icon: '✉' },
   { href: '/dashboard/plans',        label: 'Plans',         icon: '⚡' },
@@ -55,24 +54,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               const active = item.href === '/dashboard'
                 ? pathname === '/dashboard'
                 : pathname.startsWith(item.href);
-
-              if (item.highlight) {
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'ml-1 flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-                      active
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
-                    )}
-                  >
-                    <span className="text-sm leading-none font-bold">+</span>
-                    Post ad
-                  </Link>
-                );
-              }
 
               return (
                 <Link
