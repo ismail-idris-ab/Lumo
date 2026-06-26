@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { LegalPage, LegalSection } from '@/components/legal-page';
+import { StaffApplicationForm } from '@/components/staff-application-form';
 import { SITE_NAME } from '@/lib/seo';
 
 export const metadata: Metadata = {
@@ -29,19 +30,16 @@ export default function CareersPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="Stay in touch">
-        <p>
-          Think you&apos;d be a great fit for what we&apos;re building? Send a short note and your
-          CV to{' '}
-          <a href="mailto:ismailidris285@gmail.com" className="underline">
-            ismailidris285@gmail.com
-          </a>{' '}
-          — we keep good people on file for when a role opens. See our{' '}
+      <LegalSection heading="Apply">
+        <p className="mb-3">
+          Think you&apos;d be a great fit for what we&apos;re building? Tell us below — we keep good
+          people on file for when a role opens. See our{' '}
           <a href="/candidate-privacy" className="underline">
             Candidate Privacy Policy
           </a>{' '}
           for how we handle anything you send us.
         </p>
+        <StaffApplicationForm />
       </LegalSection>
     </LegalPage>
   );

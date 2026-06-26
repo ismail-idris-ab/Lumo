@@ -54,3 +54,7 @@ export type ReportReason = z.infer<typeof reportReasonSchema>;
 export const promotionTierValues = ['NONE', 'BOOST', 'TOP', 'DIAMOND', 'ENTERPRISE'] as const;
 export const promotionTierSchema = z.enum(promotionTierValues);
 export type PromotionTier = z.infer<typeof promotionTierSchema>;
+
+export const applicationStatusValues = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export const applicationStatusSchema = z.enum(applicationStatusValues);
+export type ApplicationStatus = z.infer<typeof applicationStatusSchema>;

@@ -423,6 +423,27 @@ model AuditLog {
   @@index([actorId])
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Public "join the team" submissions from /careers — reviewed by SUPER_ADMIN, who then
+// manually grants ADMIN after the applicant registers a normal account (no auto-promotion).
+model StaffApplication {
+  id         String            @id @default(cuid())
+  name       String
+  email      String
+  message    String?
+  status     ApplicationStatus @default(PENDING)
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt  DateTime          @default(now())
+
+  @@index([status])
+}
+
 model SavedSearch {
   id            String     @id @default(cuid())
   userId        String

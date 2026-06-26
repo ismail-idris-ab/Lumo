@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/verifications', label: 'Verifications' },
   { href: '/admin/payments', label: 'Payments' },
   { href: '/admin/staff', label: 'Staff' },
+  { href: '/admin/applications', label: 'Applications', superAdminOnly: true },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const isAdmin = !!user?.roles.some((r) => r === 'ADMIN' || r === 'SUPER_ADMIN');
+  const isSuperAdmin = !!user?.roles.includes('SUPER_ADMIN');
+  const nav = NAV.filter((item) => !item.superAdminOnly || isSuperAdmin);
 
   useEffect(() => {
     if (loading) return;
@@ -34,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="container grid gap-8 py-6 md:grid-cols-[180px_1fr]">
       <aside className="flex gap-1 overflow-x-auto md:flex-col">
         <p className="px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">Admin</p>
-        {NAV.map((item) => (
+        {nav.map((item) => (
           <Link
             key={item.href}
             href={item.href}

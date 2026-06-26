@@ -16,3 +16,4 @@ export * from './schemas/analytics';
 export * from './schemas/profile';
 export * from './schemas/saved-search';
 export * from './schemas/staff';
+export * from './schemas/staff-application';
