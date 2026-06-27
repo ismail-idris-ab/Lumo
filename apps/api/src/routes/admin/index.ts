@@ -9,6 +9,7 @@ import { adminPaymentsRouter } from './payments';
 import { adminAnalyticsRouter } from './analytics';
 import { adminStaffRouter } from './staff';
 import { adminApplicationsRouter } from './applications';
+import { adminGrowthRouter } from './growth';
 
 // All /api/v1/admin/* routes require an authenticated ADMIN or SUPER_ADMIN (deny-by-default).
 export const adminRouter: Router = Router();
@@ -23,3 +24,4 @@ adminRouter.use('/payments', adminPaymentsRouter);
 adminRouter.use('/analytics', adminAnalyticsRouter);
 adminRouter.use('/staff', adminStaffRouter);
 adminRouter.use('/applications', adminApplicationsRouter);
+adminRouter.use('/growth', adminGrowthRouter);

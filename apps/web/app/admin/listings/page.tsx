@@ -8,6 +8,7 @@ import {
   type Paginated,
   type PublicListing,
 } from '@lumo/shared';
+import Image from 'next/image';
 import { api } from '@/lib/api-client';
 import { formatNaira } from '@/lib/format';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,23 @@ export default function AdminModerationPage() {
                 {formatNaira(l.priceKobo)} · {l.category?.name} · {l.city}, {l.state}
               </p>
               <p className="mt-1 line-clamp-2 text-sm">{l.description}</p>
+              {l.images.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {l.images.map((img) => (
+                    <a key={img.id} href={img.url} target="_blank" rel="noreferrer">
+                      <Image
+                        src={img.url}
+                        alt={l.title}
+                        width={96}
+                        height={96}
+                        className="h-24 w-24 rounded-md border object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-destructive">No images</p>
+              )}
               <div className="mt-2 flex flex-wrap gap-2">
                 <Button size="sm" disabled={act.isPending} onClick={() => act.mutate({ id: l.id, action: 'approve' })}>
                   Approve
