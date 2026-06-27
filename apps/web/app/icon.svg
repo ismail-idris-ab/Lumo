@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Lumo">
+  <title>Lumo</title>
+  <rect width="48" height="48" rx="11" fill="#1B1C42"/>
+  <circle cx="24" cy="24" r="16.5" fill="none" stroke="#FFB020" stroke-width="2" opacity="0.45"/>
+  <circle cx="24" cy="24" r="11" fill="none" stroke="#FFB020" stroke-width="3.6"/>
+  <circle cx="24" cy="24" r="5.4" fill="#FFB020"/>
+</svg>

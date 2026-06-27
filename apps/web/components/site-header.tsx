@@ -17,8 +17,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-4">
-        <Link href="/" className="text-lg font-bold">
-          Lumo
+        <Link href="/" className="flex items-center" aria-label="Lumo">
+          <img src="/logo.svg" alt="Lumo" className="h-7 w-auto" />
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           {loading ? null : user ? (
