@@ -13,9 +13,9 @@ const categories = [
 
 // Promotion packages + subscription plans (PRD §15, prices in kobo).
 const promotionPackages = [
-  { name: 'Promote 7 days', days: 7, priceKobo: 150_000 },
-  { name: 'Promote 14 days', days: 14, priceKobo: 250_000 },
-  { name: 'Promote 30 days', days: 30, priceKobo: 400_000 },
+  { name: 'Promote 7 days', days: 7, priceKobo: 150_000, tier: 'BOOST' as const },
+  { name: 'Promote 14 days', days: 14, priceKobo: 250_000, tier: 'TOP' as const },
+  { name: 'Promote 30 days', days: 30, priceKobo: 400_000, tier: 'DIAMOND' as const },
 ];
 const subscriptionPlans = [
   { name: 'Starter', priceKobo: 300_000, listingLimit: 20, promoCredits: 2, features: { badge: false, featured: false } },

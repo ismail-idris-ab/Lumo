@@ -12,6 +12,7 @@ interface PromotionPackage {
   name: string;
   days: number;
   priceKobo: number;
+  tier: 'BOOST' | 'TOP' | 'DIAMOND' | 'ENTERPRISE';
 }
 
 export function PromoteDialog({
@@ -74,7 +75,7 @@ export function PromoteDialog({
                 <div>
                   <p className="text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.days} day{p.days === 1 ? '' : 's'} of boosted visibility
+                    {p.days} day{p.days === 1 ? '' : 's'} · {p.tier} tier visibility
                   </p>
                 </div>
                 <Button size="sm" disabled={busy !== null} onClick={() => pick(p.id)}>

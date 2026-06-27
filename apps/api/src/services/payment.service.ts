@@ -8,7 +8,7 @@ import {
   type PaymentDTO,
   type Role,
 } from '@lumo/shared';
-import type { Payment, PaymentStatus } from '@prisma/client';
+import type { Payment, PaymentStatus, PromotionTier } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { config } from '../config/env';
 import { AppError } from '../lib/errors';
@@ -51,7 +51,11 @@ async function price(
       if (!listing || listing.deletedAt) throw AppError.notFound('Listing not found');
       assertOwnership(actor, listing.ownerId);
       if (!pkg || !pkg.active) throw AppError.badRequest('Promotion package not found');
-      return { amountKobo: pkg.priceKobo, targetId: listing.id, metadata: { packageId: pkg.id, days: pkg.days } };
+      return {
+        amountKobo: pkg.priceKobo,
+        targetId: listing.id,
+        metadata: { packageId: pkg.id, days: pkg.days, tier: pkg.tier },
+      };
     }
     case 'SUBSCRIPTION': {
       const plan = await prisma.subscriptionPlan.findUnique({ where: { id: data.planId } });
@@ -136,10 +140,11 @@ export async function fulfillPayment(reference: string, paidAmountKobo: number):
     switch (payment.purpose) {
       case 'PROMOTION': {
         const days = Number(meta.days ?? 7);
+        const tier = typeof meta.tier === 'string' ? meta.tier : 'BOOST';
         if (payment.targetId) {
           await tx.listing.update({
             where: { id: payment.targetId },
-            data: { isPromoted: true, promotedUntil: addDays(days) },
+            data: { isPromoted: true, promotedUntil: addDays(days), promotionTier: tier as PromotionTier },
           });
         }
         break;

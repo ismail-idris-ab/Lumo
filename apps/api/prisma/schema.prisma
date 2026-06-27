@@ -330,11 +330,12 @@ model Report {
 }
 
 model PromotionPackage {
-  id        String  @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
   days      Int
   priceKobo Int
-  active    Boolean @default(true)
+  tier      PromotionTier @default(BOOST) // drives search ranking weight (lib/search.ts TIER_WEIGHT)
+  active    Boolean       @default(true)
 }
 
 model SubscriptionPlan {
