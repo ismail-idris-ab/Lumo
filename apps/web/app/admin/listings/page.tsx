@@ -30,6 +30,12 @@ export default function AdminModerationPage() {
     onSuccess: invalidate,
   });
 
+  const promote = useMutation({
+    mutationFn: ({ id, days, tier }: { id: string; days: number; tier: string }) =>
+      api.post(`/admin/listings/${id}/promote`, { days, tier }),
+    onSuccess: invalidate,
+  });
+
   const items = data?.items ?? [];
 
   return (
@@ -100,6 +106,20 @@ export default function AdminModerationPage() {
                   }}
                 >
                   Suspend
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={promote.isPending}
+                  onClick={() => {
+                    const days = Number(prompt('Promote for how many days?', '30'));
+                    if (!days || days < 1 || days > 90) return;
+                    const tier = prompt('Tier? BOOST / TOP / DIAMOND / ENTERPRISE', 'BOOST');
+                    if (!tier) return;
+                    promote.mutate({ id: l.id, days, tier: tier.toUpperCase() });
+                  }}
+                >
+                  {l.isPromoted ? 'Re-promote' : 'Promote'}
                 </Button>
               </div>
             </li>

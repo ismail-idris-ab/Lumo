@@ -42,6 +42,13 @@ adminListingsRouter.post(
 );
 
 adminListingsRouter.post(
+  '/:id/promote',
+  asyncHandler(async (req, res) => {
+    res.json({ listing: await moderation.promoteListing(param(req, 'id'), req.body, actorFrom(req)) });
+  }),
+);
+
+adminListingsRouter.post(
   '/:id/flag',
   asyncHandler(async (req, res) => {
     res.json({ listing: await moderation.flagListing(param(req, 'id'), actorFrom(req)) });

@@ -17,6 +17,54 @@ import { listingInclude, toPublicListing } from './listing.service';
 
 const DAY_MS = 86_400_000;
 
+const promotionTierValues = ['BOOST', 'TOP', 'DIAMOND', 'ENTERPRISE'] as const;
+
+// Admin-direct promo grant for a single listing — bypasses Paystack (free, manual override).
+// Writes the same isPromoted/promotedUntil/promotionTier fields the payment webhook sets,
+// so it composes safely with a later paid promotion (whichever runs last just resets the date).
+export async function promoteListing(id: string, input: unknown, actor: Actor): Promise<PublicListing> {
+  const days = Number((input as Record<string, unknown> | null)?.days);
+  const tier = (input as Record<string, unknown> | null)?.tier;
+  if (!Number.isFinite(days) || days < 1 || days > 90) {
+    throw AppError.badRequest('days must be between 1 and 90');
+  }
+  if (!(promotionTierValues as readonly string[]).includes(tier as string)) {
+    throw AppError.badRequest(`tier must be one of ${promotionTierValues.join(', ')}`);
+  }
+
+  const before = await prisma.listing.findUnique({ where: { id }, select: { promotedUntil: true } });
+  if (!before) throw AppError.notFound('Listing not found');
+
+  const listing = await prisma.listing.update({
+    where: { id },
+    data: {
+      isPromoted: true,
+      promotedUntil: new Date(Date.now() + days * DAY_MS),
+      promotionTier: tier as (typeof promotionTierValues)[number],
+    },
+    include: listingInclude,
+  });
+  await writeAudit({
+    actorId: actor.id,
+    action: 'listing.promote',
+    targetType: 'Listing',
+    targetId: id,
+    before: { promotedUntil: before.promotedUntil },
+    after: { promotedUntil: listing.promotedUntil, promotionTier: listing.promotionTier },
+    ip: actor.ip,
+  });
+  await enqueueListingSync(id);
+  if (listing.ownerId) {
+    await notify(listing.ownerId, 'listing.promoted', { listingId: id, days, tier: tier as string });
+    void emailUser(
+      listing.ownerId,
+      'Your Lumo listing is promoted',
+      `<p>An admin promoted your listing for ${days} days — enjoy the extra visibility.</p>`,
+    );
+  }
+  return toPublicListing(listing);
+}
+
 export async function listListingsForAdmin(rawQuery: unknown): Promise<Paginated<PublicListing>> {
   const q = adminListingQuerySchema.parse(rawQuery);
   const where: Prisma.ListingWhereInput = {
