@@ -67,18 +67,19 @@ export async function SiteFooter() {
           </div>
         )}
 
-        <div className="space-y-2 border-t border-slate-800 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <details className="group border-t border-slate-800 pt-6">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-300">
             Browse by state
-          </p>
-          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs">
+            <span className="text-base leading-none transition-transform group-open:rotate-45">+</span>
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-xs">
             {NG_STATES.map((state) => (
               <Link key={state} href={`/listings/${toSlug(state)}`} className={linkCls}>
                 {state}
               </Link>
             ))}
           </div>
-        </div>
+        </details>
 
         <p className="border-t border-slate-800 pt-6 text-xs text-slate-500">
           © {new Date().getFullYear()} {SITE_NAME} — the trusted local marketplace for verified Nigerian sellers.
