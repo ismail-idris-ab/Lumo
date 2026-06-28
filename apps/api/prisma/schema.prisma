@@ -187,6 +187,7 @@ model Category {
   children Category[] @relation("Sub")
   order    Int        @default(0)
   attributeSchema Json?
+  description String?
   listings Listing[]
 }
 
