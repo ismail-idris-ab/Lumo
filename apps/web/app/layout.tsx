@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
-  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_NG' },
+  openGraph: { siteName: SITE_NAME, type: 'website', locale: 'en_NG', url: SITE_URL },
   twitter: { card: 'summary_large_image' },
 };
 
