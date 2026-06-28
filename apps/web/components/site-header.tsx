@@ -21,7 +21,7 @@ export function SiteHeader() {
           <img src="/logo.svg" alt="Lumo" className="h-7 w-auto" />
         </Link>
         <nav className="flex items-center gap-2 text-sm">
-          {loading ? null : user ? (
+          {!loading && user ? (
             <>
               <div className="hidden items-center gap-1.5 sm:flex">
                 <NavIconLink href="/dashboard/favorites" label="Favorites" icon={Heart} tone="rose" />

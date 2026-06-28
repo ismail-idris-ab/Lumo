@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body className="flex min-h-dvh flex-col pb-24 antialiased sm:pb-0">
+      <body className="flex min-h-screen flex-col pb-24 antialiased sm:pb-0">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={jsonLdScript(organizationJsonLd())}
