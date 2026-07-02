@@ -9,6 +9,7 @@ const categories = [
   { name: 'Vehicles', slug: 'vehicles', order: 3 },
   { name: 'Property', slug: 'property', order: 4 },
   { name: 'Services', slug: 'services', order: 5 },
+  { name: 'Fashion', slug: 'fashion', order: 6 },
 ];
 
 // Electronics subcategories — nested under the top-level 'electronics' category.
@@ -29,6 +30,28 @@ const electronicsSubcategories = [
   { name: 'Power & Accessories', slug: 'power-accessories', order: 14, description: 'Chargers, cables, power banks, batteries, adapters, UPS, and inverter accessories.' },
   { name: 'Smart Home & Wearables', slug: 'smart-home-wearables', order: 15, description: 'Smartwatches, fitness bands, smart speakers, smart bulbs, and connected-home devices.' },
   { name: 'Software', slug: 'software', order: 16, description: 'Operating systems, productivity apps, antivirus, and licensed software.' },
+];
+
+// Fashion subcategories — nested under the top-level 'fashion' category.
+const fashionSubcategories = [
+  { name: "Women's Clothing", slug: 'womens-clothing', order: 1, description: 'Dresses, tops, skirts, jeans, gowns, and casual, office, and party wear for women.' },
+  { name: "Men's Clothing", slug: 'mens-clothing', order: 2, description: 'Shirts, T-shirts, trousers, jeans, suits, and casual and office wear for men.' },
+  { name: 'Shoes & Footwear', slug: 'shoes-footwear', order: 3, description: 'Sneakers, heels, sandals, slippers, boots, and handmade leather sandals (takalmi).' },
+  { name: 'Bags & Luggage', slug: 'bags-luggage', order: 4, description: 'Handbags, backpacks, purses, wallets, and travel bags.' },
+  { name: "Men's Native & Traditional Wear", slug: 'mens-traditional-wear', order: 5, description: 'Agbada, kaftans, Senator styles, isiagu, and embroidered native gowns from across Nigeria.' },
+  { name: "Women's Native & Traditional Wear", slug: 'womens-traditional-wear', order: 6, description: 'Iro and buba, kaba gowns, lace outfits, and embroidered traditional wear for women.' },
+  { name: 'Northern & Hausa Traditional Wear', slug: 'northern-hausa-wear', order: 7, description: 'Babban riga (grand robes), embroidered kaftans, jalabiya, and shadda and atamfa native styles from Northern Nigeria.' },
+  { name: 'Caps, Turbans & Headwear', slug: 'caps-turbans-headwear', order: 8, description: 'Hausa caps (hula, dara, zanna), fila, turbans (rawani), and women’s head ties (kallabi) and veils (gyale).' },
+  { name: 'Modest & Islamic Wear', slug: 'modest-islamic-wear', order: 9, description: 'Abaya, hijab, khimar, jalabiya, and modest everyday and prayer wear.' },
+  { name: 'Fabrics & Textiles', slug: 'fabrics-textiles', order: 10, description: 'Ankara, lace, atamfa, shadda (guinea brocade), aso-oke, and Senator material sold by the yard.' },
+  { name: 'Jewelry & Beads', slug: 'jewelry-beads', order: 11, description: 'Necklaces, earrings, rings, bangles, waist beads, and traditional bead sets.' },
+  { name: 'Perfumes & Turare', slug: 'perfumes-turare', order: 12, description: 'Perfume oils, attar and oud, body sprays, and traditional Northern incense and fragrance (turare).' },
+  { name: 'Fashion Accessories', slug: 'fashion-accessories', order: 13, description: 'Belts, sunglasses, scarves, gloves, and hair accessories.' },
+  { name: 'Watches', slug: 'watches', order: 14, description: 'Wristwatches and fashion timepieces for men and women.' },
+  { name: 'Bridal & Wedding', slug: 'bridal-wedding', order: 15, description: 'Wedding gowns, aso-ebi sets, bridal accessories, and traditional outfits including Northern kayan lefe.' },
+  { name: "Kids' & Babies' Fashion", slug: 'kids-fashion', order: 16, description: 'Clothing, shoes, and outfits for children, toddlers, and babies.' },
+  { name: 'Thrift & Okrika', slug: 'thrift-okrika', order: 17, description: 'Affordable quality second-hand clothing, shoes, and bags (okrika / bend-down-select).' },
+  { name: 'Sportswear & Activewear', slug: 'sportswear-activewear', order: 18, description: 'Gym wear, jerseys, tracksuits, leggings, and athletic shoes.' },
 ];
 
 // Promotion packages + subscription plans (PRD §15, prices in kobo).
@@ -70,6 +93,16 @@ async function main() {
     });
   }
 
+  const fashion = await prisma.category.findUnique({ where: { slug: 'fashion' } });
+  if (!fashion) throw new Error('fashion category missing — seed top-level first');
+  for (const sub of fashionSubcategories) {
+    await prisma.category.upsert({
+      where: { slug: sub.slug },
+      update: { name: sub.name, order: sub.order, description: sub.description, parentId: fashion.id },
+      create: { ...sub, parentId: fashion.id },
+    });
+  }
+
   await upsertByName(
     (name) => prisma.promotionPackage.findFirst({ where: { name }, select: { id: true } }),
     (d) => prisma.promotionPackage.create({ data: d }),
@@ -85,7 +118,7 @@ async function main() {
   );
 
   console.log(
-    `Seeded ${categories.length} categories, ${electronicsSubcategories.length} electronics subcategories, ${promotionPackages.length} promo packages, ${subscriptionPlans.length} plans`,
+    `Seeded ${categories.length} categories, ${electronicsSubcategories.length} electronics subcategories, ${fashionSubcategories.length} fashion subcategories, ${promotionPackages.length} promo packages, ${subscriptionPlans.length} plans`,
   );
 }
 
