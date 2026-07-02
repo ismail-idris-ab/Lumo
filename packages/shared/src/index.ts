@@ -3,6 +3,7 @@ export * from './nigeria-lgas';
 export * from './constants';
 export * from './types';
 export * from './slug';
+export * from './attributes';
 export * from './schemas/auth';
 export * from './schemas/category';
 export * from './schemas/listing';

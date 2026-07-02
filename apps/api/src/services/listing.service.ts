@@ -9,11 +9,13 @@ import {
   AUTO_APPROVE_MIN_APPROVALS,
   AUTO_APPROVE_CLEAN_WINDOW_DAYS,
   SPOTCHECK_FIRST_N,
+  validateListingAttributes,
   type ListingQuery,
   type Paginated,
   type PublicListing,
   type Role,
   type LandingCombo,
+  type AttributeFieldDef,
 } from '@lumo/shared';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
@@ -202,11 +204,33 @@ async function applyAutoApprove(actorId: string, listing: { id: string; slug: st
   await notify(actorId, 'listing.approved', { listingId: listing.id, slug: listing.slug });
 }
 
+// Validates listing attributes against the selected (leaf) category's attributeSchema,
+// falling back to the parent's schema when the leaf has none — mirrors the client-side
+// fallback in listing-form.tsx so what the seller sees is what gets enforced.
+function validateAttributesForCategory(
+  category: { attributeSchema: unknown; parent: { attributeSchema: unknown } | null },
+  attributes: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const schema = (category.attributeSchema ?? category.parent?.attributeSchema) as
+    | AttributeFieldDef[]
+    | null
+    | undefined;
+  const result = validateListingAttributes(schema, attributes);
+  if (!result.ok) {
+    throw AppError.badRequest('Invalid listing attributes', result.errors);
+  }
+  return result.value;
+}
+
 export async function createListing(input: unknown, ownerId: string): Promise<PublicListing> {
   const data = createListingSchema.parse(input);
 
-  const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+  const category = await prisma.category.findUnique({
+    where: { id: data.categoryId },
+    include: { parent: { select: { attributeSchema: true } } },
+  });
   if (!category) throw AppError.badRequest('Category not found');
+  const validatedAttributes = validateAttributesForCategory(category, data.attributes);
 
   // Lazily become a seller on first post (single-account model, PRD §7).
   await prisma.sellerProfile.upsert({
@@ -239,7 +263,9 @@ export async function createListing(input: unknown, ownerId: string): Promise<Pu
       categoryId: data.categoryId,
       ownerId,
       expiresAt: ttlExpiry(),
-      attributes: (data.attributes as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+      attributes: Object.keys(validatedAttributes).length
+        ? (validatedAttributes as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
     },
     include: listingInclude,
   });
@@ -394,9 +420,18 @@ export async function updateListing(
     throw AppError.conflict(`A ${existing.status} listing cannot be edited`);
   }
 
-  if (data.categoryId && data.categoryId !== existing.categoryId) {
-    const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+  let validatedAttributes: Record<string, unknown> | undefined;
+  const categoryChanged = data.categoryId && data.categoryId !== existing.categoryId;
+  if (categoryChanged || data.attributes !== undefined) {
+    const effectiveCategoryId = data.categoryId ?? existing.categoryId;
+    const category = await prisma.category.findUnique({
+      where: { id: effectiveCategoryId },
+      include: { parent: { select: { attributeSchema: true } } },
+    });
     if (!category) throw AppError.badRequest('Category not found');
+    if (data.attributes !== undefined) {
+      validatedAttributes = validateAttributesForCategory(category, data.attributes);
+    }
   }
 
   const hasChanges = Object.keys(data).length > 0;
@@ -412,7 +447,9 @@ export async function updateListing(
     data: {
       ...scalarData,
       // Explicitly handle nullable JSON — Prisma requires Prisma.JsonNull not null.
-      ...(attributes !== undefined ? { attributes: (attributes as Prisma.InputJsonValue) ?? Prisma.JsonNull } : {}),
+      ...(validatedAttributes !== undefined
+        ? { attributes: Object.keys(validatedAttributes).length ? (validatedAttributes as Prisma.InputJsonValue) : Prisma.JsonNull }
+        : {}),
       ...(editStatus ? { status: editStatus } : {}),
     },
     include: listingInclude,

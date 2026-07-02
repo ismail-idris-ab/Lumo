@@ -292,6 +292,69 @@ describe('createListing auto-approve', () => {
   });
 });
 
+describe('createListing attribute validation', () => {
+  const input = {
+    title: 'Test item',
+    description: 'A perfectly good description.',
+    priceKobo: 10_000,
+    condition: 'USED',
+    state: 'Lagos',
+    city: 'Lagos',
+    categoryId: 'cl000000000000000000cat1',
+    attributes: { brand: 'Apple' },
+  };
+
+  beforeEach(() => {
+    sellerProfile.upsert.mockResolvedValue({});
+    userUpdateMany.mockResolvedValue({ count: 0 });
+    listingFindUnique.mockResolvedValue(null); // slug is unique
+    sellerProfile.findUnique.mockResolvedValue({ verification: 'NONE' });
+    user.findUnique.mockResolvedValue(OLD_ENOUGH);
+    listingCreate.mockResolvedValue(hydratedListing({ status: 'PENDING' }));
+  });
+
+  it('rejects an attribute key not present in the category attributeSchema', async () => {
+    categoryFindUnique.mockResolvedValue({
+      id: 'cat1',
+      attributeSchema: [{ key: 'ram', label: 'RAM', type: 'select', options: ['4GB', '8GB'] }],
+      parent: null,
+    });
+
+    await expect(createListing({ ...input, attributes: { unknownKey: 'x' } }, 'u1')).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    expect(listingCreate).not.toHaveBeenCalled();
+  });
+
+  it('accepts and coerces a known attribute against the category attributeSchema', async () => {
+    categoryFindUnique.mockResolvedValue({
+      id: 'cat1',
+      attributeSchema: [{ key: 'ram', label: 'RAM', type: 'select', options: ['4GB', '8GB'] }],
+      parent: null,
+    });
+
+    await createListing({ ...input, attributes: { ram: '8GB' } }, 'u1');
+
+    expect(listingCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ attributes: { ram: '8GB' } }) }),
+    );
+  });
+
+  it('falls back to the parent category attributeSchema when the leaf has none', async () => {
+    categoryFindUnique.mockResolvedValue({
+      id: 'cat1',
+      attributeSchema: null,
+      parent: { attributeSchema: [{ key: 'brand', label: 'Brand', type: 'text' }] },
+    });
+
+    await createListing({ ...input, attributes: { brand: 'Apple' } }, 'u1');
+
+    expect(listingCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ attributes: { brand: 'Apple' } }) }),
+    );
+  });
+});
+
 describe('updateListing verified-edit auto-approve', () => {
   const existing = {
     id: 'l1',

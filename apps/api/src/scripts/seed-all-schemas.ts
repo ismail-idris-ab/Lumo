@@ -1,11 +1,15 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { phoneSchema } from './seed-phone-schema';
+import { schemas as electronicsSchemas } from './seed-electronics-schemas';
 
 const prisma = new PrismaClient({
   datasourceUrl: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
 });
 
 const schemas: Array<{ slug: string; schema: object[] }> = [
+  phoneSchema as { slug: string; schema: object[] },
+  ...Object.entries(electronicsSchemas).map(([slug, schema]) => ({ slug, schema: schema as object[] })),
   {
     slug: 'vehicles',
     schema: [

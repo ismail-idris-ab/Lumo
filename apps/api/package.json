@@ -24,6 +24,7 @@
     "search:reindex": "tsx src/scripts/search-reindex.ts",
     "payments:reconcile": "tsx src/scripts/run-reconcile.ts",
     "seed:phone": "tsx src/scripts/seed-phone-schema.ts",
+    "seed:electronics-schemas": "tsx src/scripts/seed-electronics-schemas.ts",
     "seed:schemas": "tsx src/scripts/seed-all-schemas.ts"
   },
   "prisma": {
