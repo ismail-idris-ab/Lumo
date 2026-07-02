@@ -6,22 +6,43 @@ import type { CategorySummary } from '@lumo/shared';
 
 // ── Icon mapping ──────────────────────────────────────────────────────────────
 
-// Slug-exact lookup — takes priority over keyword matching.
+// Slug-exact lookup — takes priority over keyword matching. Every live category and
+// subcategory gets its own entry so no two rows in the drawer share an icon.
 const SLUG_ICONS: Record<string, string> = {
+  // Top-level categories
+  'phones-tablets': '📲',
+  'electronics': '⚡',
+  'vehicles': '🚙',
+  'property': '🏘️',
+  'services': '🛠️',
+  'fashion': '🧵',
   // Phones & Tablets subcategories
   'smartphones': '📱',
-  'tablets': '🖥️',
-  'phone-accessories': '🔌',
+  'tablets': '🗒️',
+  'phone-accessories': '🧰',
   'smart-watches-wearables': '⌚',
   'phone-parts-components': '🔋',
   'phone-tablet-repair': '🔧',
   // Electronics subcategories
   'laptops-computers': '💻',
+  'audio-music-equipment': '🎚️',
   'tvs-monitors': '📺',
   'audio-speakers': '🔊',
-  'cameras': '📷',
-  'gaming': '🎮',
+  'tv-video-equipment': '🎞️',
+  'headphones-earphones': '🎧',
   'computer-accessories': '🖱️',
+  'gaming': '🕹️',
+  'computer-hardware': '🧩',
+  'computer-monitors': '🖥️',
+  'printers-scanners': '🖨️',
+  'cameras': '📷',
+  'game-consoles': '🎮',
+  'video-games': '👾',
+  'security-surveillance': '🛡️',
+  'networking-products': '📡',
+  'power-accessories': '🔌',
+  'smart-home-wearables': '🛎️',
+  'software': '💿',
   // Vehicles
   'cars': '🚗',
   'motorcycles': '🏍️',
@@ -41,6 +62,25 @@ const SLUG_ICONS: Record<string, string> = {
   'health-wellness': '💊',
   'events-entertainment': '🎉',
   'fashion-beauty': '💄',
+  // Fashion subcategories
+  'womens-clothing': '👗',
+  'mens-clothing': '👔',
+  'shoes-footwear': '👟',
+  'bags-luggage': '👜',
+  'mens-traditional-wear': '🧥',
+  'womens-traditional-wear': '🥻',
+  'northern-hausa-wear': '🪘',
+  'caps-turbans-headwear': '👳',
+  'modest-islamic-wear': '🧕',
+  'fabrics-textiles': '🪡',
+  'jewelry-beads': '💍',
+  'perfumes-turare': '🧴',
+  'fashion-accessories': '🧣',
+  'watches': '🕰️',
+  'bridal-wedding': '💒',
+  'kids-fashion': '🧸',
+  'thrift-okrika': '👚',
+  'sportswear-activewear': '🏃',
 };
 
 const ICON_MAP: Array<[string, string]> = [
