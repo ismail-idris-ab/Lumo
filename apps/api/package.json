@@ -25,6 +25,7 @@
     "payments:reconcile": "tsx src/scripts/run-reconcile.ts",
     "seed:phone": "tsx src/scripts/seed-phone-schema.ts",
     "seed:electronics-schemas": "tsx src/scripts/seed-electronics-schemas.ts",
+    "seed:fashion-schemas": "tsx src/scripts/seed-fashion-schemas.ts",
     "seed:schemas": "tsx src/scripts/seed-all-schemas.ts"
   },
   "prisma": {

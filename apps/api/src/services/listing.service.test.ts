@@ -313,6 +313,19 @@ describe('createListing attribute validation', () => {
     listingCreate.mockResolvedValue(hydratedListing({ status: 'PENDING' }));
   });
 
+  it('rejects a select value outside the category attributeSchema options (Fashion-shaped schema)', async () => {
+    categoryFindUnique.mockResolvedValue({
+      id: 'cat1',
+      attributeSchema: [{ key: 'size', label: 'Size (EU)', type: 'select', options: ['40', '41', '42'] }],
+      parent: null,
+    });
+
+    await expect(createListing({ ...input, attributes: { size: '99' } }, 'u1')).rejects.toMatchObject({
+      statusCode: 400,
+    });
+    expect(listingCreate).not.toHaveBeenCalled();
+  });
+
   it('rejects an attribute key not present in the category attributeSchema', async () => {
     categoryFindUnique.mockResolvedValue({
       id: 'cat1',
