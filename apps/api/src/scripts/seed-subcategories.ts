@@ -11,14 +11,8 @@ const SUBCATEGORIES: Record<string, { name: string; slug: string; order: number 
     { name: 'Phone Parts & Components', slug: 'phone-parts-components', order: 5 },
     { name: 'Phone & Tablet Repair & Services', slug: 'phone-tablet-repair', order: 6 },
   ],
-  'electronics': [
-    { name: 'Laptops & Computers', slug: 'laptops-computers', order: 1 },
-    { name: 'TVs & Monitors', slug: 'tvs-monitors', order: 2 },
-    { name: 'Audio & Speakers', slug: 'audio-speakers', order: 3 },
-    { name: 'Cameras', slug: 'cameras', order: 4 },
-    { name: 'Gaming', slug: 'gaming', order: 5 },
-    { name: 'Computer Accessories', slug: 'computer-accessories', order: 6 },
-  ],
+  // Electronics subcategories are owned by prisma/seed.ts's 16-slug scheme
+  // (electronicsSubcategories) — do not seed a competing set here.
   'vehicles': [
     { name: 'Cars', slug: 'cars', order: 1 },
     { name: 'Motorcycles', slug: 'motorcycles', order: 2 },
@@ -43,8 +37,9 @@ const SUBCATEGORIES: Record<string, { name: string; slug: string; order: number 
   ],
 };
 
-// Obsolete phone subcategory slugs merged into Mobile Phones / Tablets above.
-const OBSOLETE_SLUGS = ['iphones', 'ipads', 'feature-phones'];
+// Obsolete phone subcategory slugs merged into Mobile Phones / Tablets above, plus
+// the old 6-slug Electronics set superseded by prisma/seed.ts's 16-slug scheme.
+const OBSOLETE_SLUGS = ['iphones', 'ipads', 'feature-phones', 'tvs-monitors', 'audio-speakers', 'gaming'];
 
 async function main() {
   // Remove stale subcategories (safe when no listings reference them; skip if FK error).

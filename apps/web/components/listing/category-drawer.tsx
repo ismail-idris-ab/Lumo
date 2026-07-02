@@ -26,12 +26,9 @@ const SLUG_ICONS: Record<string, string> = {
   // Electronics subcategories
   'laptops-computers': '💻',
   'audio-music-equipment': '🎚️',
-  'tvs-monitors': '📺',
-  'audio-speakers': '🔊',
   'tv-video-equipment': '🎞️',
   'headphones-earphones': '🎧',
   'computer-accessories': '🖱️',
-  'gaming': '🕹️',
   'computer-hardware': '🧩',
   'computer-monitors': '🖥️',
   'printers-scanners': '🖨️',
